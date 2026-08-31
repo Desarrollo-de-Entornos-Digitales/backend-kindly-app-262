@@ -1,5 +1,5 @@
 ---
-title: 'Product Requirements Document: kindly-app'
+title: "Product Requirements Document: kindly-app"
 status: final
 created: 2026-08-28
 updated: 2026-08-28
@@ -8,11 +8,13 @@ updated: 2026-08-28
 # Product Requirements Document (PRD) - kindly-app
 
 ## 1. Overview & Vision
+
 **Kindly-app** is a centralized full-stack volunteering connection platform developed for Web and Mobile (NestJS REST API backend, relational persistence, and responsive frontend). It replaces informal, chaotic social media listings with structured matching (swipe deck, geolocated map, skill/interest filtering), operational cause logistics (quota limits, required in-cause supplies, QR-based check-in attendance), and platform-wide administrative governance.
 
 ---
 
 ## 2. User Roles & Actors
+
 - **VOLUNTEER (Voluntario):** Individual seeking vetted community/social/environmental initiatives, applying to causes, registering attendance via QR, and indicating supply contributions.
 - **ORGANIZER (Organización / ONG / Refugio):** Verified group or entity creating causes, specifying requirements/supplies, screening applicants, broadcasting announcements, and generating event QR codes.
 - **ADMIN (Administrador del Sistema):** Superuser managing platform users (enable/disable), assigning roles/permissions, reviewing/approving organization verification documents, and moderating system-wide causes.
@@ -24,6 +26,7 @@ updated: 2026-08-28
 ### Epic 1: Identity, Roles & User Governance
 
 #### US-1.1: Registration and Authentication
+
 - **As a** new user (Volunteer or Organization representative),
 - **I want to** register and authenticate securely using my email and password,
 - **So that** I have a personalized and protected account within Kindly.
@@ -33,6 +36,7 @@ updated: 2026-08-28
   3. Form inputs validate email format and password strength.
 
 #### US-1.2: Volunteer Profile & Field Readiness
+
 - **As a** Volunteer,
 - **I want to** configure my personal profile with my skills, interests, location, apparel size, and emergency health center,
 - **So that** organizations know my qualifications and have essential field logistics/safety information.
@@ -42,6 +46,7 @@ updated: 2026-08-28
   3. Volunteer can view their completed causes count and active applications.
 
 #### US-1.3: Organization Profile & Legal Verification Request
+
 - **As an** Organization,
 - **I want to** set up our organization profile and submit verification documentation (e.g., RUT or legal certificate),
 - **So that** we can earn a verified trust badge on the platform.
@@ -51,6 +56,7 @@ updated: 2026-08-28
   3. Organization verification status displays as UNVERIFIED, PENDING_REVIEW, VERIFIED, or REJECTED.
 
 #### US-1.4: Administrative User Management & Verification Review
+
 - **As an** Administrator,
 - **I want to** list users, enable/disable accounts, change roles, and review organization verification submissions,
 - **So that** the platform remains safe, compliant, and trustworthy.
@@ -64,6 +70,7 @@ updated: 2026-08-28
 ### Epic 2: Cause Management & In-Cause Logistics
 
 #### US-2.1: Cause Creation and Publishing
+
 - **As an** Organizer,
 - **I want to** create and publish a new volunteering cause with dates, location, capacity quota, required skills, and required supply items,
 - **So that** interested volunteers can discover and understand the event requirements.
@@ -73,6 +80,7 @@ updated: 2026-08-28
   3. Published cause is immediately queryable by the matching engine and map.
 
 #### US-2.2: Cause Administration & Quota Balance
+
 - **As an** Organizer,
 - **I want to** view my active causes, edit information, monitor filled vs. available quota, and delete/close causes,
 - **So that** I have full operational control over our events.
@@ -82,6 +90,7 @@ updated: 2026-08-28
   3. The system prevents over-acceptance when quota limit is reached.
 
 #### US-2.3: Cause Announcements (Broadcast Channel)
+
 - **As an** Organizer,
 - **I want to** post announcement updates within a cause’s forum,
 - **So that** accepted volunteers receive critical logistical news and instructions.
@@ -94,6 +103,7 @@ updated: 2026-08-28
 ### Epic 3: Discovery & Intelligent Matching
 
 #### US-3.1: Swipe Match Discovery (Card Deck)
+
 - **As a** Volunteer,
 - **I want to** browse causes through a Tinder-style swipeable card interface,
 - **So that** I can rapidly discover and express interest in causes that catch my attention.
@@ -103,6 +113,7 @@ updated: 2026-08-28
   3. Swiping left / clicking 'Dismiss' skips the card and advances to the next cause.
 
 #### US-3.2: Interactive Geolocation Map Search
+
 - **As a** Volunteer,
 - **I want to** view nearby volunteering opportunities on an interactive map,
 - **So that** I can easily find initiatives close to my current physical location.
@@ -112,6 +123,7 @@ updated: 2026-08-28
   3. Map allows zooming and centering based on the user’s location or search area.
 
 #### US-3.3: Multi-Criteria Filtered Search & 'For You' Feed
+
 - **As a** Volunteer,
 - **I want to** filter causes by keywords, category, and required skills, as well as view a 'For You' prioritized feed,
 - **So that** I can find specific opportunities aligned with my exact schedule and skills.
@@ -125,6 +137,7 @@ updated: 2026-08-28
 ### Epic 4: Application Pipeline & QR Attendance Check-in
 
 #### US-4.1: Application Submission with Supply Contribution
+
 - **As a** Volunteer,
 - **I want to** apply to a cause and indicate which required supply items (if any) I can bring,
 - **So that** the organization knows I want to participate and what materials I can contribute.
@@ -134,6 +147,7 @@ updated: 2026-08-28
   3. Volunteer can withdraw/cancel a PENDING application at any time.
 
 #### US-4.2: Applicant Screening & Decisioning
+
 - **As an** Organizer,
 - **I want to** review pending applicant profiles (including skills, medical center, clothing size, and pledged supplies) and accept or reject them,
 - **So that** I can assemble the most suitable and prepared team of volunteers.
@@ -143,6 +157,7 @@ updated: 2026-08-28
   3. If the cause reaches full quota, remaining pending applications are notified or blocked from further acceptance.
 
 #### US-4.3: QR Code Attendance Check-in
+
 - **As an** Organizer and an accepted Volunteer,
 - **We want to** generate and scan an on-site event QR code,
 - **So that** volunteer physical attendance is verified securely and instantly.
@@ -165,6 +180,7 @@ updated: 2026-08-28
 ---
 
 ## 5. Success Metrics
+
 - **Match-to-Application Conversion:** > 30% of swipe interactions convert to submitted applications.
 - **Attendance Verification Rate:** > 80% of accepted volunteers verified on-site via QR scan.
 - **Organizer Turnaround Time:** Applications reviewed within < 48 hours.
