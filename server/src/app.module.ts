@@ -1,6 +1,18 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AuthModule } from './auth/auth.module';
+import { MediaModule } from './media/media.module';
+import { MatchesModule } from './matches/matches.module';
+import { MatchingModule } from './match/matching.module';
+import { ParticipationModule } from './participation/participation.module';
+import { SubmissionModule } from './submission/submission.module';
+import { AnnouncementModule } from './announcement/announcement.module';
+import { CauseModule } from './cause/cause.module';
+import { OrganizerModule } from './organizer/organizer.module';
+import { VolunteersModule } from './volunteer/volunteers.module';
+import { UsersModule } from './user/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
     imports: [
@@ -22,6 +34,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
                 synchronize: true,
             }),
         }),
+        AuthModule,
+        UsersModule,
+        VolunteersModule,
+        OrganizerModule,
+        CauseModule,
+        AnnouncementModule,
+        SubmissionModule,
+        ParticipationModule,
+        MatchingModule,
+        MatchesModule,
+        MediaModule,
     ],
 })
 export class AppModule {}
