@@ -3,24 +3,21 @@ import { VolunteerAchievement } from './volunteer-achievement.entity';
 
 @Entity('achievements')
 export class Achievement {
-  @PrimaryGeneratedColumn()
-  id: number;
+    @PrimaryGeneratedColumn()
+    id!: number;
 
-  @Column()
-  name: string;
+    @Column()
+    name!: string;
 
-  @Column()
-  color: string;
+    @Column()
+    color!: string;
 
-  @Column()
-  icon: string;
+    @Column()
+    icon!: string;
 
-  @Column()
-  description: string;
+    @Column()
+    description!: string;
 
-  @OneToMany(
-    () => VolunteerAchievement,
-    (volunteerAchievement) => volunteerAchievement.achievement,
-  )
-  volunteerAchievements: VolunteerAchievement[];
+    @OneToMany(() => VolunteerAchievement, (volunteerAchievement) => volunteerAchievement.achievement)
+    volunteerAchievements!: VolunteerAchievement[];
 }

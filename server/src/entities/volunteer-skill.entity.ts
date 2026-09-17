@@ -5,16 +5,16 @@ import { Volunteer } from './volunteer.entity';
 @Entity('volunteer_skills')
 export class VolunteerSkill {
   @PrimaryColumn({ name: 'volunteer_id' })
-  volunteer_id: number;
+  volunteer_id!: number;
 
   @PrimaryColumn({ name: 'skill_id' })
-  skill_id: number;
+  skill_id!: number;
 
   @ManyToOne(() => Volunteer, (volunteer) => volunteer.volunteerSkills)
   @JoinColumn({ name: 'volunteer_id' })
-  volunteer: Volunteer;
+  volunteer!: Volunteer;
 
   @ManyToOne(() => Skill, (skill) => skill.volunteerSkills)
   @JoinColumn({ name: 'skill_id' })
-  skill: Skill;
+  skill!: Skill;
 }

@@ -11,32 +11,32 @@ import { Volunteer } from './volunteer.entity';
 @Entity('submission')
 export class Submission {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ name: 'volunteer_id' })
-  volunteer_id: number;
+  volunteer_id!: number;
 
   @Column({ name: 'cause_id' })
-  cause_id: number;
+  cause_id!: number;
 
   @Column()
-  status: string;
+  status!: string;
 
   @Column({
     name: 'created_at',
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP',
   })
-  created_at: Date;
+  created_at!: Date;
 
   @Column({ nullable: true })
-  justification: string;
+  justification!: string;
 
   @ManyToOne(() => Volunteer, (volunteer) => volunteer.submissions)
   @JoinColumn({ name: 'volunteer_id' })
-  volunteer: Volunteer;
+  volunteer!: Volunteer;
 
   @ManyToOne(() => Cause, (cause) => cause.submissions)
   @JoinColumn({ name: 'cause_id' })
-  cause: Cause;
+  cause!: Cause;
 }

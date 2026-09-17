@@ -10,24 +10,24 @@ import { Cause } from './cause.entity';
 @Entity('supplies')
 export class Supply {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column({ name: 'cause_id' })
-  cause_id: number;
+  cause_id!: number;
 
   @Column({ name: 'item_name' })
-  item_name: string;
+  item_name!: string;
 
   @Column({ default: true })
-  needed: boolean;
+  needed!: boolean;
 
   @Column({ name: 'quantity_needed' })
-  quantity_needed: number;
+  quantity_needed!: number;
 
   @Column()
-  image: string;
+  image!: string;
 
   @ManyToOne(() => Cause, (cause) => cause.supplies)
   @JoinColumn({ name: 'cause_id' })
-  cause: Cause;
+  cause!: Cause;
 }

@@ -3,18 +3,15 @@ import { RolePermission } from './role-permission.entity';
 
 @Entity('permissions')
 export class Permission {
-  @PrimaryGeneratedColumn()
-  id: number;
+    @PrimaryGeneratedColumn()
+    id!: number;
 
-  @Column()
-  name: string;
+    @Column()
+    name!: string;
 
-  @Column()
-  description: string;
+    @Column()
+    description!: string;
 
-  @OneToMany(
-    () => RolePermission,
-    (rolePermission) => rolePermission.permission,
-  )
-  rolePermissions: RolePermission[];
+    @OneToMany(() => RolePermission, (rolePermission) => rolePermission.permission)
+    rolePermissions!: RolePermission[];
 }

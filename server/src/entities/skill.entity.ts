@@ -4,11 +4,11 @@ import { VolunteerSkill } from './volunteer-skill.entity';
 @Entity('skills')
 export class Skill {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column()
-  name: string;
+  name!: string;
 
   @OneToMany(() => VolunteerSkill, (volunteerSkill) => volunteerSkill.skill)
-  volunteerSkills: VolunteerSkill[];
+  volunteerSkills!: VolunteerSkill[];
 }

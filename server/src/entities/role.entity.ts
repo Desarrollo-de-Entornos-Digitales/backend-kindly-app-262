@@ -5,17 +5,17 @@ import { User } from './user.entity';
 @Entity('role')
 export class Role {
   @PrimaryGeneratedColumn()
-  id: number;
+  id!: number;
 
   @Column()
-  name: string;
+  name!: string;
 
   @Column()
-  description: string;
+  description!: string;
 
   @OneToMany(() => User, (user) => user.role)
-  users: User[];
+  users!: User[];
 
   @OneToMany(() => RolePermission, (rolePermission) => rolePermission.role)
-  rolePermissions: RolePermission[];
+  rolePermissions!: RolePermission[];
 }
