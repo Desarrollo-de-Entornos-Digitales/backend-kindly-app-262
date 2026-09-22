@@ -2,17 +2,15 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
+import { VolunteersModule } from './volunteers/volunteers.module';
+import { OrganizationsModule } from './organizations/organizations.module';
+import { CausesModule } from './causes/causes.module';
+import { AnnouncementsModule } from './announcements/announcements.module';
+import { ParticipationsModule } from './participations/participations.module';
+import { MatchingModule } from './matching/matching.module';
 import { MediaModule } from './media/media.module';
-import { MatchesModule } from './matches/matches.module';
-import { MatchingModule } from './match/matching.module';
-import { ParticipationModule } from './participation/participation.module';
-import { SubmissionModule } from './submission/submission.module';
-import { AnnouncementModule } from './announcement/announcement.module';
-import { CauseModule } from './cause/cause.module';
-import { OrganizerModule } from './organizer/organizer.module';
-import { VolunteersModule } from './volunteer/volunteers.module';
-import { UsersModule } from './user/users.module';
-import { AuthModule } from './auth/auth.module';
+import { AchievementsModule } from './achievements/achievements.module';
 
 @Module({
     imports: [
@@ -37,14 +35,13 @@ import { AuthModule } from './auth/auth.module';
         AuthModule,
         UsersModule,
         VolunteersModule,
-        OrganizerModule,
-        CauseModule,
-        AnnouncementModule,
-        SubmissionModule,
-        ParticipationModule,
+        OrganizationsModule,
+        CausesModule,
+        AnnouncementsModule,
+        ParticipationsModule,
         MatchingModule,
-        MatchesModule,
         MediaModule,
+        AchievementsModule,
     ],
 })
 export class AppModule {}

@@ -1,0 +1,10 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Reaction } from './entities/reaction.entity';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Reaction])],
+  exports: [TypeOrmModule],
+})
+export class ReactionModule {}
+
