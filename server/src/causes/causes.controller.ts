@@ -3,7 +3,7 @@ import { CausesService } from './causes.service';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
 
-@Controller('cause')
+@Controller('causes')
 export class CausesController {
   constructor(private readonly causesService: CausesService) {}
 

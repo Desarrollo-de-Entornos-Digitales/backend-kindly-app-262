@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { VolunteerCategory } from './entities/volunteer-category.entity';
+import { VolunteerCategoryService } from './volunteer-category.service';
+import { VolunteerCategoryController } from './volunteer-category.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([VolunteerCategory])],
-  exports: [TypeOrmModule],
+  controllers: [VolunteerCategoryController],
+  providers: [VolunteerCategoryService],
 })
 export class VolunteerCategoryModule {}
-

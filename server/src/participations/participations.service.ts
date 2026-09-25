@@ -9,7 +9,7 @@ export class ParticipationsService {
   }
 
   findAll() {
-    return `This action returns all participation`;
+    return `This action returns all participations`;
   }
 
   findOne(id: number) {

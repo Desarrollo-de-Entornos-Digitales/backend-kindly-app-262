@@ -9,7 +9,7 @@ export class AnnouncementsService {
   }
 
   findAll() {
-    return `This action returns all announcement`;
+    return `This action returns all announcements`;
   }
 
   findOne(id: number) {

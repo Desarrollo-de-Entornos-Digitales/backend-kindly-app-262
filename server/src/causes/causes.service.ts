@@ -9,7 +9,7 @@ export class CausesService {
   }
 
   findAll() {
-    return `This action returns all cause`;
+    return `This action returns all causes`;
   }
 
   findOne(id: number) {

@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { VolunteerSkill } from './entities/volunteer-skill.entity';
+import { VolunteerSkillService } from './volunteer-skill.service';
+import { VolunteerSkillController } from './volunteer-skill.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([VolunteerSkill])],
-  exports: [TypeOrmModule],
+  controllers: [VolunteerSkillController],
+  providers: [VolunteerSkillService],
 })
 export class VolunteerSkillModule {}
-

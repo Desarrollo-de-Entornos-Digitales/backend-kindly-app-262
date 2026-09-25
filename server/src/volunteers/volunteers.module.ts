@@ -8,21 +8,8 @@ import { VolunteerSkillModule } from './volunteer-skill/volunteer-skill.module';
 import { VolunteerCategoryModule } from './volunteer-category/volunteer-category.module';
 
 @Module({
-  imports: [
-    VolunteerModule,
-    SkillModule,
-    CategoryModule,
-    VolunteerSkillModule,
-    VolunteerCategoryModule,
-  ],
   controllers: [VolunteersController],
   providers: [VolunteersService],
-  exports: [
-    VolunteerModule,
-    SkillModule,
-    CategoryModule,
-    VolunteerSkillModule,
-    VolunteerCategoryModule,
-  ],
+  imports: [VolunteerModule, SkillModule, CategoryModule, VolunteerSkillModule, VolunteerCategoryModule],
 })
 export class VolunteersModule {}

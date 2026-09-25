@@ -8,7 +8,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { CausesModule } from './causes/causes.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { ParticipationsModule } from './participations/participations.module';
-import { MatchingModule } from './matching/matching.module';
+import { MatchesModule } from './matches/matches.module';
 import { MediaModule } from './media/media.module';
 import { AchievementsModule } from './achievements/achievements.module';
 
@@ -39,7 +39,7 @@ import { AchievementsModule } from './achievements/achievements.module';
         CausesModule,
         AnnouncementsModule,
         ParticipationsModule,
-        MatchingModule,
+        MatchesModule,
         MediaModule,
         AchievementsModule,
     ],

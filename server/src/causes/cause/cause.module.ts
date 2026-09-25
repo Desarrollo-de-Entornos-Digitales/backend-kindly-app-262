@@ -1,10 +1,9 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { Cause } from './entities/cause.entity';
+import { CauseService } from './cause.service';
+import { CauseController } from './cause.controller';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Cause])],
-  exports: [TypeOrmModule],
+  controllers: [CauseController],
+  providers: [CauseService],
 })
-export class CauseSubModule {}
-
+export class CauseModule {}
