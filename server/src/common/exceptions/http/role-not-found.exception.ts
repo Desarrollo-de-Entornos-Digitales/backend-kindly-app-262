@@ -1,7 +1,11 @@
 import { NotFoundException } from '@nestjs/common';
 
 export class RoleNotFoundException extends NotFoundException {
-    constructor(role?: number | string) {
-        super(role ? `El rol '${role}' no fue encontrado.` : 'El rol solicitado no fue encontrado.');
+    constructor(roleId?: number | string, internalCode?: string) {
+        super({
+            error: 'Role Not Found',
+            message: roleId ? `Role '${roleId}' not found.` : 'Role not found.',
+            code: internalCode,
+        });
     }
 }

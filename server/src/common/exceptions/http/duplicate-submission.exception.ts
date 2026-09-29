@@ -1,7 +1,11 @@
 import { ConflictException } from '@nestjs/common';
 
 export class DuplicateSubmissionException extends ConflictException {
-    constructor(message = 'El voluntario ya cuenta con una postulación activa para esta causa.') {
-        super(message);
+    constructor(message = 'Volunteer already has an active submission for this cause.', internalCode?: string) {
+        super({
+            error: 'Duplicate Submission',
+            message,
+            code: internalCode,
+        });
     }
 }
