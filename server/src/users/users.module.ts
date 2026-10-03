@@ -7,8 +7,8 @@ import { PermissionModule } from './permission/permission.module';
 import { RolePermissionModule } from './role-permission/role-permission.module';
 
 @Module({
-  controllers: [UsersController],
-  providers: [UsersService],
-  imports: [UserModule, RoleModule, PermissionModule, RolePermissionModule],
+    controllers: [UsersController],
+    providers: [UsersService],
+    imports: [UserModule, RoleModule, PermissionModule, RolePermissionModule],
 })
 export class UsersModule {}

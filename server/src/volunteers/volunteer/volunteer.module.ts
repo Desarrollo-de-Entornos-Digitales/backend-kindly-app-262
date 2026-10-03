@@ -3,7 +3,7 @@ import { VolunteerService } from './volunteer.service';
 import { VolunteerController } from './volunteer.controller';
 
 @Module({
-  controllers: [VolunteerController],
-  providers: [VolunteerService],
+    controllers: [VolunteerController],
+    providers: [VolunteerService],
 })
 export class VolunteerModule {}

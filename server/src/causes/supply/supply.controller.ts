@@ -5,30 +5,30 @@ import { UpdateSupplyDto } from './dto/update-supply.dto';
 
 @Controller('supply')
 export class SupplyController {
-  constructor(private readonly supplyService: SupplyService) {}
+    constructor(private readonly supplyService: SupplyService) {}
 
-  @Post()
-  create(@Body() createSupplyDto: CreateSupplyDto) {
-    return this.supplyService.create(createSupplyDto);
-  }
+    @Post()
+    create(@Body() createSupplyDto: CreateSupplyDto) {
+        return this.supplyService.create(createSupplyDto);
+    }
 
-  @Get()
-  findAll() {
-    return this.supplyService.findAll();
-  }
+    @Get()
+    findAll() {
+        return this.supplyService.findAll();
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.supplyService.findOne(+id);
-  }
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.supplyService.findOne(+id);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSupplyDto: UpdateSupplyDto) {
-    return this.supplyService.update(+id, updateSupplyDto);
-  }
+    @Patch(':id')
+    update(@Param('id') id: string, @Body() updateSupplyDto: UpdateSupplyDto) {
+        return this.supplyService.update(+id, updateSupplyDto);
+    }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.supplyService.remove(+id);
-  }
+    @Delete(':id')
+    remove(@Param('id') id: string) {
+        return this.supplyService.remove(+id);
+    }
 }

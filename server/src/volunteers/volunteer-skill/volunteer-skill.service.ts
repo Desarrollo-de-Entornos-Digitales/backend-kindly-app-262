@@ -4,23 +4,23 @@ import { UpdateVolunteerSkillDto } from './dto/update-volunteer-skill.dto';
 
 @Injectable()
 export class VolunteerSkillService {
-  create(createVolunteerSkillDto: CreateVolunteerSkillDto) {
-    return 'This action adds a new volunteerSkill';
-  }
+    create(createVolunteerSkillDto: CreateVolunteerSkillDto) {
+        return 'This action adds a new volunteerSkill';
+    }
 
-  findAll() {
-    return `This action returns all volunteerSkill`;
-  }
+    findAll() {
+        return `This action returns all volunteerSkill`;
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} volunteerSkill`;
-  }
+    findOne(id: number) {
+        return `This action returns a #${id} volunteerSkill`;
+    }
 
-  update(id: number, updateVolunteerSkillDto: UpdateVolunteerSkillDto) {
-    return `This action updates a #${id} volunteerSkill`;
-  }
+    update(id: number, updateVolunteerSkillDto: UpdateVolunteerSkillDto) {
+        return `This action updates a #${id} volunteerSkill`;
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} volunteerSkill`;
-  }
+    remove(id: number) {
+        return `This action removes a #${id} volunteerSkill`;
+    }
 }

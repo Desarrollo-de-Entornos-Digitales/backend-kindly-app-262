@@ -5,30 +5,30 @@ import { UpdateParticipationDto } from './dto/update-participation.dto';
 
 @Controller('participations')
 export class ParticipationsController {
-  constructor(private readonly participationsService: ParticipationsService) {}
+    constructor(private readonly participationsService: ParticipationsService) {}
 
-  @Post()
-  create(@Body() createParticipationDto: CreateParticipationDto) {
-    return this.participationsService.create(createParticipationDto);
-  }
+    @Post()
+    create(@Body() createParticipationDto: CreateParticipationDto) {
+        return this.participationsService.create(createParticipationDto);
+    }
 
-  @Get()
-  findAll() {
-    return this.participationsService.findAll();
-  }
+    @Get()
+    findAll() {
+        return this.participationsService.findAll();
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.participationsService.findOne(+id);
-  }
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.participationsService.findOne(+id);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateParticipationDto: UpdateParticipationDto) {
-    return this.participationsService.update(+id, updateParticipationDto);
-  }
+    @Patch(':id')
+    update(@Param('id') id: string, @Body() updateParticipationDto: UpdateParticipationDto) {
+        return this.participationsService.update(+id, updateParticipationDto);
+    }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.participationsService.remove(+id);
-  }
+    @Delete(':id')
+    remove(@Param('id') id: string) {
+        return this.participationsService.remove(+id);
+    }
 }

@@ -5,30 +5,30 @@ import { UpdateVolunteerSkillDto } from './dto/update-volunteer-skill.dto';
 
 @Controller('volunteer-skill')
 export class VolunteerSkillController {
-  constructor(private readonly volunteerSkillService: VolunteerSkillService) {}
+    constructor(private readonly volunteerSkillService: VolunteerSkillService) {}
 
-  @Post()
-  create(@Body() createVolunteerSkillDto: CreateVolunteerSkillDto) {
-    return this.volunteerSkillService.create(createVolunteerSkillDto);
-  }
+    @Post()
+    create(@Body() createVolunteerSkillDto: CreateVolunteerSkillDto) {
+        return this.volunteerSkillService.create(createVolunteerSkillDto);
+    }
 
-  @Get()
-  findAll() {
-    return this.volunteerSkillService.findAll();
-  }
+    @Get()
+    findAll() {
+        return this.volunteerSkillService.findAll();
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.volunteerSkillService.findOne(+id);
-  }
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.volunteerSkillService.findOne(+id);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateVolunteerSkillDto: UpdateVolunteerSkillDto) {
-    return this.volunteerSkillService.update(+id, updateVolunteerSkillDto);
-  }
+    @Patch(':id')
+    update(@Param('id') id: string, @Body() updateVolunteerSkillDto: UpdateVolunteerSkillDto) {
+        return this.volunteerSkillService.update(+id, updateVolunteerSkillDto);
+    }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.volunteerSkillService.remove(+id);
-  }
+    @Delete(':id')
+    remove(@Param('id') id: string) {
+        return this.volunteerSkillService.remove(+id);
+    }
 }

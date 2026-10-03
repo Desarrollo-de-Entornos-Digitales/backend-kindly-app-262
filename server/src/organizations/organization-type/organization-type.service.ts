@@ -4,23 +4,23 @@ import { UpdateOrganizationTypeDto } from './dto/update-organization-type.dto';
 
 @Injectable()
 export class OrganizationTypeService {
-  create(createOrganizationTypeDto: CreateOrganizationTypeDto) {
-    return 'This action adds a new organizationType';
-  }
+    create(createOrganizationTypeDto: CreateOrganizationTypeDto) {
+        return 'This action adds a new organizationType';
+    }
 
-  findAll() {
-    return `This action returns all organizationType`;
-  }
+    findAll() {
+        return `This action returns all organizationType`;
+    }
 
-  findOne(id: number) {
-    return `This action returns a #${id} organizationType`;
-  }
+    findOne(id: number) {
+        return `This action returns a #${id} organizationType`;
+    }
 
-  update(id: number, updateOrganizationTypeDto: UpdateOrganizationTypeDto) {
-    return `This action updates a #${id} organizationType`;
-  }
+    update(id: number, updateOrganizationTypeDto: UpdateOrganizationTypeDto) {
+        return `This action updates a #${id} organizationType`;
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} organizationType`;
-  }
+    remove(id: number) {
+        return `This action removes a #${id} organizationType`;
+    }
 }

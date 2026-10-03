@@ -3,7 +3,7 @@ import { ReactionService } from './reaction.service';
 import { ReactionController } from './reaction.controller';
 
 @Module({
-  controllers: [ReactionController],
-  providers: [ReactionService],
+    controllers: [ReactionController],
+    providers: [ReactionService],
 })
 export class ReactionModule {}

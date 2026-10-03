@@ -3,7 +3,7 @@ import { VolunteerAchievementService } from './volunteer-achievement.service';
 import { VolunteerAchievementController } from './volunteer-achievement.controller';
 
 @Module({
-  controllers: [VolunteerAchievementController],
-  providers: [VolunteerAchievementService],
+    controllers: [VolunteerAchievementController],
+    providers: [VolunteerAchievementService],
 })
 export class VolunteerAchievementModule {}

@@ -5,8 +5,8 @@ import { AchievementModule } from './achievement/achievement.module';
 import { VolunteerAchievementModule } from './volunteer-achievement/volunteer-achievement.module';
 
 @Module({
-  controllers: [AchievementsController],
-  providers: [AchievementsService],
-  imports: [AchievementModule, VolunteerAchievementModule],
+    controllers: [AchievementsController],
+    providers: [AchievementsService],
+    imports: [AchievementModule, VolunteerAchievementModule],
 })
 export class AchievementsModule {}

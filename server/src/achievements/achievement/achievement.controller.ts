@@ -5,30 +5,30 @@ import { UpdateAchievementDto } from './dto/update-achievement.dto';
 
 @Controller('achievement')
 export class AchievementController {
-  constructor(private readonly achievementService: AchievementService) {}
+    constructor(private readonly achievementService: AchievementService) {}
 
-  @Post()
-  create(@Body() createAchievementDto: CreateAchievementDto) {
-    return this.achievementService.create(createAchievementDto);
-  }
+    @Post()
+    create(@Body() createAchievementDto: CreateAchievementDto) {
+        return this.achievementService.create(createAchievementDto);
+    }
 
-  @Get()
-  findAll() {
-    return this.achievementService.findAll();
-  }
+    @Get()
+    findAll() {
+        return this.achievementService.findAll();
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.achievementService.findOne(+id);
-  }
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.achievementService.findOne(+id);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAchievementDto: UpdateAchievementDto) {
-    return this.achievementService.update(+id, updateAchievementDto);
-  }
+    @Patch(':id')
+    update(@Param('id') id: string, @Body() updateAchievementDto: UpdateAchievementDto) {
+        return this.achievementService.update(+id, updateAchievementDto);
+    }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.achievementService.remove(+id);
-  }
+    @Delete(':id')
+    remove(@Param('id') id: string) {
+        return this.achievementService.remove(+id);
+    }
 }

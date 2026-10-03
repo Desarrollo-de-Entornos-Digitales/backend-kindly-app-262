@@ -5,30 +5,30 @@ import { UpdateVolunteerAchievementDto } from './dto/update-volunteer-achievemen
 
 @Controller('volunteer-achievement')
 export class VolunteerAchievementController {
-  constructor(private readonly volunteerAchievementService: VolunteerAchievementService) {}
+    constructor(private readonly volunteerAchievementService: VolunteerAchievementService) {}
 
-  @Post()
-  create(@Body() createVolunteerAchievementDto: CreateVolunteerAchievementDto) {
-    return this.volunteerAchievementService.create(createVolunteerAchievementDto);
-  }
+    @Post()
+    create(@Body() createVolunteerAchievementDto: CreateVolunteerAchievementDto) {
+        return this.volunteerAchievementService.create(createVolunteerAchievementDto);
+    }
 
-  @Get()
-  findAll() {
-    return this.volunteerAchievementService.findAll();
-  }
+    @Get()
+    findAll() {
+        return this.volunteerAchievementService.findAll();
+    }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.volunteerAchievementService.findOne(+id);
-  }
+    @Get(':id')
+    findOne(@Param('id') id: string) {
+        return this.volunteerAchievementService.findOne(+id);
+    }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateVolunteerAchievementDto: UpdateVolunteerAchievementDto) {
-    return this.volunteerAchievementService.update(+id, updateVolunteerAchievementDto);
-  }
+    @Patch(':id')
+    update(@Param('id') id: string, @Body() updateVolunteerAchievementDto: UpdateVolunteerAchievementDto) {
+        return this.volunteerAchievementService.update(+id, updateVolunteerAchievementDto);
+    }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.volunteerAchievementService.remove(+id);
-  }
+    @Delete(':id')
+    remove(@Param('id') id: string) {
+        return this.volunteerAchievementService.remove(+id);
+    }
 }

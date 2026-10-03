@@ -5,8 +5,8 @@ import { SubmissionModule } from './submission/submission.module';
 import { AttendanceModule } from './attendance/attendance.module';
 
 @Module({
-  controllers: [ParticipationsController],
-  providers: [ParticipationsService],
-  imports: [SubmissionModule, AttendanceModule],
+    controllers: [ParticipationsController],
+    providers: [ParticipationsService],
+    imports: [SubmissionModule, AttendanceModule],
 })
 export class ParticipationsModule {}

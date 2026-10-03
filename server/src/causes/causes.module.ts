@@ -5,8 +5,8 @@ import { CauseModule } from './cause/cause.module';
 import { SupplyModule } from './supply/supply.module';
 
 @Module({
-  controllers: [CausesController],
-  providers: [CausesService],
-  imports: [CauseModule, SupplyModule],
+    controllers: [CausesController],
+    providers: [CausesService],
+    imports: [CauseModule, SupplyModule],
 })
 export class CausesModule {}

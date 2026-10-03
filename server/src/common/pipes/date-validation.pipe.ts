@@ -1,23 +1,34 @@
-import { PipeTransform, Injectable, BadRequestException } from '@nestjs/common';
+import { BadRequestException, Injectable, PipeTransform } from '@nestjs/common';
 
-export interface DateValidationOptions {
-    startDate: Date;
-    endDate: Date;
+export interface DateValue {
+    startDate: string;
+    endDate: string;
 }
 
 @Injectable()
 export class DateValidationPipe implements PipeTransform {
-    constructor(private readonly options: DateValidationOptions) {}
-
-    transform(value: any) {
+    transform(value: DateValue) {
         const { startDate, endDate } = value;
 
-        if (startDate > endDate) {
-            throw new BadRequestException('The end date is not valid');
+        if (!startDate === !endDate) {
+            throw new BadRequestException('Las fechas de inicio y final son obligatorias');
         }
 
-        if (endDate < startDate) {
-            throw new BadRequestException('The end date cannot be before the start date.');
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        const now = new Date(); //Actual date
+
+        if (start < now) {
+            throw new BadRequestException('Inválido: La fecha de inicio de la causa no puede estar en el pasado.');
         }
+
+        if (end < start) {
+            throw new BadRequestException(
+                'Inválido: La fecha de finalización no puede estar antes de la fecha de inicio.',
+            );
+        }
+
+        return value;
     }
 }
