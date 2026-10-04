@@ -85,3 +85,11 @@ Utilizamos el estándar [Conventional Commits v1.0.0](https://www.conventionalco
    ```bash
    git push -u origin feature/opportunity-filters
    ```
+
+---
+
+## 4. Distribución de Historias de Jira y Ramas por Integrante
+
+Para consultar la distribución exacta de las 56 historias de usuario de Jira divididas entre las 3 personas del equipo, junto con el roadmap por fases y el diagrama de integración, consulta:
+👉 [**Guía de Flujo de Trabajo y Ramas del Equipo (team-workflow.md)**](./team-workflow.md)
+
