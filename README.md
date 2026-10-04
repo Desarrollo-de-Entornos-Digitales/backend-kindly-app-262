@@ -107,9 +107,9 @@ El equipo sigue estrictamente el flujo **Git Flow** con **Conventional Commits**
 
 | Integrante | Dominio Principal | Ramas de Trabajo |
 |---|---|---|
-| **👤 Persona 1** | IAM, Perfiles, Admin y Búsqueda (19 US) | • `feature/auth-and-user-governance`<br>• `feature/volunteer-profiles-and-achievements`<br>• `feature/organization-profiles-verification`<br>• `feature/causes-search-and-filters` |
-| **👤 Persona 2** | Gestión de Causas, Anuncios y Match Cards (19 US) | • `feature/causes-crud-and-supplies`<br>• `feature/announcements-and-reactions`<br>• `feature/swipe-match-deck`<br>• `feature/causes-map-preview` |
-| **👤 Persona 3** | Postulaciones, QR, Asistencia y Feed For You (18 US) | • `feature/application-pipeline-screening`<br>• `feature/attendance-qr-checkin`<br>• `feature/for-you-feed-and-map-navigation` |
+| **👤 Persona 1** | IAM, Perfiles, Admin y Búsqueda (19 US) | • `feat/auth-and-user-governance`<br>• `feat/volunteer-profiles-and-achievements`<br>• `feat/organization-profiles-verification`<br>• `feat/causes-search-and-filters` |
+| **👤 Persona 2** | Gestión de Causas, Anuncios y Match Cards (19 US) | • `feat/causes-crud-and-supplies`<br>• `feat/announcements-and-reactions`<br>• `feat/swipe-match-deck`<br>• `feat/causes-map-preview` |
+| **👤 Persona 3** | Postulaciones, QR, Asistencia y Feed For You (18 US) | • `feat/application-pipeline-screening`<br>• `feat/attendance-qr-checkin`<br>• `feat/for-you-feed-and-map-navigation` |
 
 ---
 

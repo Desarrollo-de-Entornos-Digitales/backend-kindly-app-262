@@ -17,7 +17,7 @@ Toda nueva tarea se ramifica a partir de **`develop`** y debe reintegrarse a **`
 
 Formato de nombres: `<tipo>/<descripcion-kebab-case>`
 
-- **`feature/<nombre>`**: Nueva funcionalidad (ej. `feature/matching-algorithm`, `feature/auth-organizations`).
+- **`feat/<nombre>`**: Nueva funcionalidad (ej. `feat/matching-algorithm`, `feat/auth-organizations`).
 - **`fix/<nombre>`**: Corrección de un error o bug (ej. `fix/volunteer-profile-validation`).
 - **`refactor/<nombre>`**: Reestructuración de código sin cambiar funcionalidad (ej. `refactor/database-service`).
 - **`chore/<nombre>`**: Tareas de mantenimiento, dependencias o configuración (ej. `chore/eslint-setup`).
@@ -69,7 +69,7 @@ Utilizamos el estándar [Conventional Commits v1.0.0](https://www.conventionalco
    ```
 2. **Crear rama de trabajo**:
    ```bash
-   git checkout -b feature/opportunity-filters
+   git checkout -b feat/opportunity-filters
    ```
 3. **Desarrollar y realizar commits atómicos**:
    ```bash
@@ -83,7 +83,7 @@ Utilizamos el estándar [Conventional Commits v1.0.0](https://www.conventionalco
    ```
 5. **Subir rama y abrir Pull Request hacia `develop`**:
    ```bash
-   git push -u origin feature/opportunity-filters
+   git push -u origin feat/opportunity-filters
    ```
 
 ---
