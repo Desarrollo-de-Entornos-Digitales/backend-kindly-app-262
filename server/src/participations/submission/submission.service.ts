@@ -4,7 +4,7 @@ import { UpdateSubmissionDto } from './dto/update-submission.dto';
 
 @Injectable()
 export class SubmissionService {
-    create(createSubmissionDto: CreateSubmissionDto) {
+    create(_createSubmissionDto: CreateSubmissionDto) {
         return 'This action adds a new submission';
     }
 
@@ -16,7 +16,7 @@ export class SubmissionService {
         return `This action returns a #${id} submission`;
     }
 
-    update(id: number, updateSubmissionDto: UpdateSubmissionDto) {
+    update(id: number, _updateSubmissionDto: UpdateSubmissionDto) {
         return `This action updates a #${id} submission`;
     }
 

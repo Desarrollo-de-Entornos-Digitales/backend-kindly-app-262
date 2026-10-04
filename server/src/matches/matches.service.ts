@@ -4,7 +4,7 @@ import { UpdateMatchDto } from './dto/update-match.dto';
 
 @Injectable()
 export class MatchesService {
-    create(createMatchDto: CreateMatchDto) {
+    create(_createMatchDto: CreateMatchDto) {
         return 'This action adds a new match';
     }
 
@@ -16,7 +16,7 @@ export class MatchesService {
         return `This action returns a #${id} match`;
     }
 
-    update(id: number, updateMatchDto: UpdateMatchDto) {
+    update(id: number, _updateMatchDto: UpdateMatchDto) {
         return `This action updates a #${id} match`;
     }
 

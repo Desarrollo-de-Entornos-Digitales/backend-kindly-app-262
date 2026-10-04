@@ -4,7 +4,7 @@ import { UpdateVolunteerCategoryDto } from './dto/update-volunteer-category.dto'
 
 @Injectable()
 export class VolunteerCategoryService {
-    create(createVolunteerCategoryDto: CreateVolunteerCategoryDto) {
+    create(_createVolunteerCategoryDto: CreateVolunteerCategoryDto) {
         return 'This action adds a new volunteerCategory';
     }
 
@@ -16,7 +16,7 @@ export class VolunteerCategoryService {
         return `This action returns a #${id} volunteerCategory`;
     }
 
-    update(id: number, updateVolunteerCategoryDto: UpdateVolunteerCategoryDto) {
+    update(id: number, _updateVolunteerCategoryDto: UpdateVolunteerCategoryDto) {
         return `This action updates a #${id} volunteerCategory`;
     }
 

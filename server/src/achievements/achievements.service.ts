@@ -4,7 +4,7 @@ import { UpdateAchievementDto } from './dto/update-achievement.dto';
 
 @Injectable()
 export class AchievementsService {
-    create(createAchievementDto: CreateAchievementDto) {
+    create(_createAchievementDto: CreateAchievementDto) {
         return 'This action adds a new achievement';
     }
 
@@ -16,7 +16,7 @@ export class AchievementsService {
         return `This action returns a #${id} achievement`;
     }
 
-    update(id: number, updateAchievementDto: UpdateAchievementDto) {
+    update(id: number, _updateAchievementDto: UpdateAchievementDto) {
         return `This action updates a #${id} achievement`;
     }
 

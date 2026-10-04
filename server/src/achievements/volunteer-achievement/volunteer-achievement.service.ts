@@ -4,7 +4,7 @@ import { UpdateVolunteerAchievementDto } from './dto/update-volunteer-achievemen
 
 @Injectable()
 export class VolunteerAchievementService {
-    create(createVolunteerAchievementDto: CreateVolunteerAchievementDto) {
+    create(_createVolunteerAchievementDto: CreateVolunteerAchievementDto) {
         return 'This action adds a new volunteerAchievement';
     }
 
@@ -16,7 +16,7 @@ export class VolunteerAchievementService {
         return `This action returns a #${id} volunteerAchievement`;
     }
 
-    update(id: number, updateVolunteerAchievementDto: UpdateVolunteerAchievementDto) {
+    update(id: number, _updateVolunteerAchievementDto: UpdateVolunteerAchievementDto) {
         return `This action updates a #${id} volunteerAchievement`;
     }
 

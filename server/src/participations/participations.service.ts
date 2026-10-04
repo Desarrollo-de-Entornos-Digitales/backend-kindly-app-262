@@ -4,7 +4,7 @@ import { UpdateParticipationDto } from './dto/update-participation.dto';
 
 @Injectable()
 export class ParticipationsService {
-    create(createParticipationDto: CreateParticipationDto) {
+    create(_createParticipationDto: CreateParticipationDto) {
         return 'This action adds a new participation';
     }
 
@@ -16,7 +16,7 @@ export class ParticipationsService {
         return `This action returns a #${id} participation`;
     }
 
-    update(id: number, updateParticipationDto: UpdateParticipationDto) {
+    update(id: number, _updateParticipationDto: UpdateParticipationDto) {
         return `This action updates a #${id} participation`;
     }
 

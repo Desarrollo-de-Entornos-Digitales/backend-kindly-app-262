@@ -4,7 +4,7 @@ import { UpdateCauseDto } from './dto/update-cause.dto';
 
 @Injectable()
 export class CauseService {
-    create(createCauseDto: CreateCauseDto) {
+    create(_createCauseDto: CreateCauseDto) {
         return 'This action adds a new cause';
     }
 
@@ -16,7 +16,7 @@ export class CauseService {
         return `This action returns a #${id} cause`;
     }
 
-    update(id: number, updateCauseDto: UpdateCauseDto) {
+    update(id: number, _updateCauseDto: UpdateCauseDto) {
         return `This action updates a #${id} cause`;
     }
 

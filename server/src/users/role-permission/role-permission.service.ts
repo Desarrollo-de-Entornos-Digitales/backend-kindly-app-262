@@ -4,7 +4,7 @@ import { UpdateRolePermissionDto } from './dto/update-role-permission.dto';
 
 @Injectable()
 export class RolePermissionService {
-    create(createRolePermissionDto: CreateRolePermissionDto) {
+    create(_createRolePermissionDto: CreateRolePermissionDto) {
         return 'This action adds a new rolePermission';
     }
 
@@ -16,7 +16,7 @@ export class RolePermissionService {
         return `This action returns a #${id} rolePermission`;
     }
 
-    update(id: number, updateRolePermissionDto: UpdateRolePermissionDto) {
+    update(id: number, _updateRolePermissionDto: UpdateRolePermissionDto) {
         return `This action updates a #${id} rolePermission`;
     }
 

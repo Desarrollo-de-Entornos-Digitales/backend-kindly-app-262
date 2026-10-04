@@ -4,7 +4,7 @@ import { UpdateMediaDto } from './dto/update-media.dto';
 
 @Injectable()
 export class MediaService {
-    create(createMediaDto: CreateMediaDto) {
+    create(_createMediaDto: CreateMediaDto) {
         return 'This action adds a new media';
     }
 
@@ -16,7 +16,7 @@ export class MediaService {
         return `This action returns a #${id} media`;
     }
 
-    update(id: number, updateMediaDto: UpdateMediaDto) {
+    update(id: number, _updateMediaDto: UpdateMediaDto) {
         return `This action updates a #${id} media`;
     }
 

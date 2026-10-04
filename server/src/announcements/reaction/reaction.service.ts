@@ -4,7 +4,7 @@ import { UpdateReactionDto } from './dto/update-reaction.dto';
 
 @Injectable()
 export class ReactionService {
-    create(createReactionDto: CreateReactionDto) {
+    create(_createReactionDto: CreateReactionDto) {
         return 'This action adds a new reaction';
     }
 
@@ -16,7 +16,7 @@ export class ReactionService {
         return `This action returns a #${id} reaction`;
     }
 
-    update(id: number, updateReactionDto: UpdateReactionDto) {
+    update(id: number, _updateReactionDto: UpdateReactionDto) {
         return `This action updates a #${id} reaction`;
     }
 
