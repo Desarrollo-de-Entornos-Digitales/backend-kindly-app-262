@@ -1,5 +1,5 @@
 import { describe, beforeEach, it, expect, jest } from '@jest/globals';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,6 +8,7 @@ import { Cause } from './entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Category } from '../volunteers/entities/category.entity';
 import { CreateCauseDto } from './dto/create-cause.dto';
+import { UpdateCauseDto } from './dto/update-cause.dto';
 import {
     OrganizerNotFoundException,
     OrganizationNotVerifiedException,
@@ -317,6 +318,140 @@ describe('CausesService', () => {
             const result = await service.findMyCauses(1);
 
             expect(result.some((cause) => cause.organizer_id !== 1)).toBe(false);
+        });
+    });
+
+    describe('update', () => {
+        const updateDto: UpdateCauseDto = {
+            title: 'Gran Sembratón 2026 Renovada',
+            description: 'Descripción actualizada de la jornada.',
+            capacity: 60,
+        };
+
+        it('18. should update cause information successfully when belonging to organizer', async () => {
+            const currentCause = { ...mockCause, is_available: true, progress: 'open' };
+            (causeRepository.findOne as any).mockResolvedValue(currentCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.update(1, 1, updateDto);
+
+            expect(result.title).toBe(updateDto.title);
+            expect(result.description).toBe(updateDto.description);
+            expect(result.capacity).toBe(updateDto.capacity);
+            expect(causeRepository.save).toHaveBeenCalledTimes(1);
+        });
+
+        it('19. should update only provided fields and preserve unprovided fields', async () => {
+            const currentCause = { ...mockCause, address: 'Parque Ecológico Original', capacity: 50 };
+            (causeRepository.findOne as any).mockResolvedValue(currentCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const partialDto: UpdateCauseDto = { title: 'Solo Título Nuevo' };
+            const result = await service.update(1, 1, partialDto);
+
+            expect(result.title).toBe('Solo Título Nuevo');
+            expect(result.address).toBe('Parque Ecológico Original');
+            expect(result.capacity).toBe(50);
+        });
+
+        it('20. should fail if cause does not exist', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.update(999, 1, updateDto)).rejects.toThrow(CauseNotFoundException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('21. should fail if organizer does not exist', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({ ...mockCause });
+            (organizerRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.update(1, 999, updateDto)).rejects.toThrow(OrganizerNotFoundException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('22. should reject operation if organizer is not the cause owner', async () => {
+            const foreignCause = { ...mockCause, organizer_id: 2 };
+            (causeRepository.findOne as any).mockResolvedValue(foreignCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            await expect(service.update(1, 1, updateDto)).rejects.toThrow(ForbiddenException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('23. should fail if updated category_id does not exist', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({ ...mockCause });
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (categoryRepository.findOne as any).mockResolvedValue(null);
+
+            const dtoWithCategory: UpdateCauseDto = { category_id: 999 };
+            await expect(service.update(1, 1, dtoWithCategory)).rejects.toThrow(NotFoundException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('24. should update category when valid category_id is provided', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({ ...mockCause });
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            const newCategory = { ...mockCategory, id: 2, name: 'Educación' };
+            (categoryRepository.findOne as any).mockResolvedValue(newCategory);
+
+            const dtoWithCategory: UpdateCauseDto = { category_id: 2 };
+            const result = await service.update(1, 1, dtoWithCategory);
+
+            expect(result.category_id).toBe(2);
+            expect(result.category).toEqual(newCategory);
+        });
+
+        it('25. should fail if updated end_date is earlier than start_date', async () => {
+            const currentCause = {
+                ...mockCause,
+                start_date: new Date('2026-11-10T10:00:00Z'),
+                end_date: new Date('2026-11-10T18:00:00Z'),
+            };
+            (causeRepository.findOne as any).mockResolvedValue(currentCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const invalidDatesDto: UpdateCauseDto = {
+                end_date: '2026-11-09T10:00:00Z',
+            };
+
+            await expect(service.update(1, 1, invalidDatesDto)).rejects.toThrow(BadRequestException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('26. should verify repository.save is called with the updated values', async () => {
+            const currentCause = { ...mockCause };
+            (causeRepository.findOne as any).mockResolvedValue(currentCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            await service.update(1, 1, updateDto);
+
+            expect(causeRepository.save).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 1,
+                    title: updateDto.title,
+                    description: updateDto.description,
+                }),
+            );
+        });
+
+        it('27. should verify that is_available does not change when updating information', async () => {
+            const publishedCause = { ...mockCause, is_available: true };
+            (causeRepository.findOne as any).mockResolvedValue(publishedCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.update(1, 1, updateDto);
+
+            expect(result.is_available).toBe(true);
+        });
+
+        it('28. should verify that progress does not change when updating information', async () => {
+            const inProgressCause = { ...mockCause, progress: 'in_progress' };
+            (causeRepository.findOne as any).mockResolvedValue(inProgressCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.update(1, 1, updateDto);
+
+            expect(result.progress).toBe('in_progress');
         });
     });
 });

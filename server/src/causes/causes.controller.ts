@@ -41,8 +41,12 @@ export class CausesController {
     }
 
     @Patch(':id')
-    update(@Param('id') id: string, @Body() updateCauseDto: UpdateCauseDto) {
-        return this.causesService.update(+id, updateCauseDto);
+    update(
+        @Param('id', PositiveIntPipe) id: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
+        @Body() updateCauseDto: UpdateCauseDto,
+    ) {
+        return this.causesService.update(id, organizerId, updateCauseDto);
     }
 
     @Delete(':id')
