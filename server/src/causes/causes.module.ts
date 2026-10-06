@@ -7,9 +7,10 @@ import { SupplyModule } from './supply/supply.module';
 import { Cause } from './entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Category } from '../volunteers/entities/category.entity';
+import { Submission } from '../participations/entities/submission.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Cause, Organizer, Category]), CauseModule, SupplyModule],
+    imports: [TypeOrmModule.forFeature([Cause, Organizer, Category, Submission]), CauseModule, SupplyModule],
     controllers: [CausesController],
     providers: [CausesService],
     exports: [CausesService],

@@ -29,6 +29,11 @@ export class CausesController {
         return this.causesService.findMyCauses(organizerId);
     }
 
+    @Get(':id/capacity')
+    getCapacity(@Param('id', PositiveIntPipe) id: number, @Query('organizer_id', PositiveIntPipe) organizerId: number) {
+        return this.causesService.getCapacity(id, organizerId);
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.causesService.findOne(+id);

@@ -1,11 +1,12 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Raw, Repository } from 'typeorm';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
 import { Cause } from './entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Category } from '../volunteers/entities/category.entity';
+import { Submission } from '../participations/entities/submission.entity';
 import {
     OrganizerNotFoundException,
     OrganizationNotVerifiedException,
@@ -21,6 +22,8 @@ export class CausesService {
         private readonly organizerRepository: Repository<Organizer>,
         @InjectRepository(Category)
         private readonly categoryRepository: Repository<Category>,
+        @InjectRepository(Submission)
+        private readonly submissionRepository: Repository<Submission>,
     ) {}
 
     async create(createCauseDto: CreateCauseDto): Promise<Cause> {
@@ -171,6 +174,59 @@ export class CausesService {
         // cause.id, cause.organizer_id, cause.created_at, cause.qr_code, cause.is_available, cause.progress
 
         return await this.causeRepository.save(cause);
+    }
+
+    async getCapacity(causeId: number, organizerId: number) {
+        // 1. Validar existencia de la causa
+        const cause = await this.causeRepository.findOne({
+            where: { id: causeId },
+        });
+
+        if (!cause) {
+            throw new CauseNotFoundException(causeId);
+        }
+
+        // 2. Validar existencia del organizador
+        const organizer = await this.organizerRepository.findOne({
+            where: { id: organizerId },
+        });
+
+        if (!organizer) {
+            throw new OrganizerNotFoundException(organizerId);
+        }
+
+        // 3. Validar pertenencia: la causa debe pertenecer al organizer solicitante
+        if (cause.organizer_id !== organizerId) {
+            throw new ForbiddenException(
+                `Cause with ID '${causeId}' does not belong to organizer with ID '${organizerId}'.`,
+            );
+        }
+
+        // 4. Contar cupos ocupados (únicamente status 'approved' o 'accepted', case-insensitive)
+        const occupied = await this.submissionRepository.count({
+            where: {
+                cause_id: causeId,
+                status: Raw((alias) => `LOWER(${alias}) IN ('approved', 'accepted')`),
+            },
+        });
+
+        // 5. Calcular balance de capacidad
+        const hasCapacity = cause.capacity !== null && cause.capacity !== undefined;
+        const capacity = hasCapacity ? cause.capacity : null;
+        const available = hasCapacity ? Math.max(0, capacity! - occupied) : null;
+        const is_full = hasCapacity ? occupied >= capacity! : false;
+        const status_display = hasCapacity
+            ? `${occupied}/${capacity} spots filled`
+            : `${occupied} volunteers (no limit)`;
+
+        return {
+            cause_id: cause.id,
+            capacity,
+            occupied,
+            available,
+            is_full,
+            status_display,
+        };
     }
 
     remove(id: number) {

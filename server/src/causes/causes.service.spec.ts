@@ -7,6 +7,7 @@ import { CausesService } from './causes.service';
 import { Cause } from './entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Category } from '../volunteers/entities/category.entity';
+import { Submission } from '../participations/entities/submission.entity';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
 import {
@@ -20,6 +21,7 @@ describe('CausesService', () => {
     let causeRepository: jest.Mocked<Partial<Repository<Cause>>>;
     let organizerRepository: jest.Mocked<Partial<Repository<Organizer>>>;
     let categoryRepository: jest.Mocked<Partial<Repository<Category>>>;
+    let submissionRepository: jest.Mocked<Partial<Repository<Submission>>>;
 
     const mockValidDto: CreateCauseDto = {
         organizer_id: 1,
@@ -107,6 +109,10 @@ describe('CausesService', () => {
             findOne: jest.fn<any>(),
         };
 
+        submissionRepository = {
+            count: jest.fn<any>(),
+        };
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 CausesService,
@@ -121,6 +127,10 @@ describe('CausesService', () => {
                 {
                     provide: getRepositoryToken(Category),
                     useValue: categoryRepository,
+                },
+                {
+                    provide: getRepositoryToken(Submission),
+                    useValue: submissionRepository,
                 },
             ],
         }).compile();
@@ -452,6 +462,189 @@ describe('CausesService', () => {
             const result = await service.update(1, 1, updateDto);
 
             expect(result.progress).toBe('in_progress');
+        });
+    });
+
+    describe('getCapacity', () => {
+        it('29. should throw CauseNotFoundException when cause does not exist', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.getCapacity(999, 1)).rejects.toThrow(CauseNotFoundException);
+            expect(causeRepository.findOne).toHaveBeenCalledWith({ where: { id: 999 } });
+        });
+
+        it('30. should throw OrganizerNotFoundException when organizer does not exist', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+            (organizerRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.getCapacity(1, 999)).rejects.toThrow(OrganizerNotFoundException);
+            expect(organizerRepository.findOne).toHaveBeenCalledWith({ where: { id: 999 } });
+        });
+
+        it('31. should throw ForbiddenException when requesting organizer is not the owner', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+            (organizerRepository.findOne as any).mockResolvedValue({ ...mockOrganizer, id: 2 });
+
+            await expect(service.getCapacity(1, 2)).rejects.toThrow(ForbiddenException);
+        });
+
+        it('32. should calculate capacity and occupied spots with approved submissions', async () => {
+            const cause = { ...mockCause, capacity: 50 };
+            (causeRepository.findOne as any).mockResolvedValue(cause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(2);
+
+            const result = await service.getCapacity(1, 1);
+
+            expect(result).toEqual({
+                cause_id: 1,
+                capacity: 50,
+                occupied: 2,
+                available: 48,
+                is_full: false,
+                status_display: '2/50 spots filled',
+            });
+        });
+
+        it('33. should calculate capacity and occupied spots with accepted submissions', async () => {
+            const cause = { ...mockCause, capacity: 30 };
+            (causeRepository.findOne as any).mockResolvedValue(cause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(5);
+
+            const result = await service.getCapacity(1, 1);
+
+            expect(result).toEqual({
+                cause_id: 1,
+                capacity: 30,
+                occupied: 5,
+                available: 25,
+                is_full: false,
+                status_display: '5/30 spots filled',
+            });
+        });
+
+        it('34. should not count pending submissions as occupied spots', async () => {
+            const cause = { ...mockCause, capacity: 20 };
+            (causeRepository.findOne as any).mockResolvedValue(cause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(0);
+
+            const result = await service.getCapacity(1, 1);
+
+            expect(result.occupied).toBe(0);
+            expect(result.available).toBe(20);
+            expect(result.status_display).toBe('0/20 spots filled');
+        });
+
+        it('35. should not count rejected submissions as occupied spots', async () => {
+            const cause = { ...mockCause, capacity: 25 };
+            (causeRepository.findOne as any).mockResolvedValue(cause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(3);
+
+            const result = await service.getCapacity(1, 1);
+
+            expect(result.occupied).toBe(3);
+            expect(result.available).toBe(22);
+            expect(result.is_full).toBe(false);
+        });
+
+        it('36. should correctly calculate available spots using Math.max(0, capacity - occupied)', async () => {
+            const cause = { ...mockCause, capacity: 15 };
+            (causeRepository.findOne as any).mockResolvedValue(cause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(7);
+
+            const result = await service.getCapacity(1, 1);
+
+            expect(result.available).toBe(8);
+            expect(result.is_full).toBe(false);
+        });
+
+        it('37. should return available 0 and is_full true when cause is full without throwing CauseQuotaFullException', async () => {
+            const cause = { ...mockCause, capacity: 10 };
+            (causeRepository.findOne as any).mockResolvedValue(cause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(10);
+
+            const result = await service.getCapacity(1, 1);
+
+            expect(result).toEqual({
+                cause_id: 1,
+                capacity: 10,
+                occupied: 10,
+                available: 0,
+                is_full: true,
+                status_display: '10/10 spots filled',
+            });
+        });
+
+        it('38. should handle cause without capacity (null) returning available null, is_full false and real occupied count', async () => {
+            const unlimitedCause = { ...mockCause, capacity: null };
+            (causeRepository.findOne as any).mockResolvedValue(unlimitedCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(4);
+
+            const result = await service.getCapacity(1, 1);
+
+            expect(result).toEqual({
+                cause_id: 1,
+                capacity: null,
+                occupied: 4,
+                available: null,
+                is_full: false,
+                status_display: '4 volunteers (no limit)',
+            });
+        });
+
+        it('39. should query submissions with case-insensitive status matching approved or accepted', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(2);
+
+            await service.getCapacity(1, 1);
+
+            expect(submissionRepository.count).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: expect.objectContaining({
+                        cause_id: 1,
+                    }),
+                }),
+            );
+        });
+
+        it('40. should return occupied 0 and full available capacity when cause has no submissions', async () => {
+            const cause = { ...mockCause, capacity: 40 };
+            (causeRepository.findOne as any).mockResolvedValue(cause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(0);
+
+            const result = await service.getCapacity(1, 1);
+
+            expect(result.occupied).toBe(0);
+            expect(result.available).toBe(40);
+            expect(result.is_full).toBe(false);
+            expect(result.status_display).toBe('0/40 spots filled');
+        });
+
+        it('41. should format status_display correctly for both limited and unlimited capacity causes', async () => {
+            // Case A: With capacity limit
+            const causeWithLimit = { ...mockCause, capacity: 50 };
+            (causeRepository.findOne as any).mockResolvedValue(causeWithLimit);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(12);
+
+            const resultWithLimit = await service.getCapacity(1, 1);
+            expect(resultWithLimit.status_display).toBe('12/50 spots filled');
+
+            // Case B: Without capacity limit
+            const causeWithoutLimit = { ...mockCause, capacity: null };
+            (causeRepository.findOne as any).mockResolvedValue(causeWithoutLimit);
+            (submissionRepository.count as any).mockResolvedValue(12);
+
+            const resultWithoutLimit = await service.getCapacity(1, 1);
+            expect(resultWithoutLimit.status_display).toBe('12 volunteers (no limit)');
         });
     });
 });
