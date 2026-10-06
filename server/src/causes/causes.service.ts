@@ -25,7 +25,7 @@ export class CausesService {
         const endDate = new Date(createCauseDto.end_date);
 
         if (endDate < startDate) {
-            throw new BadRequestException('La fecha de finalización no puede ser anterior a la fecha de inicio.');
+            throw new BadRequestException('End date cannot be earlier than start date.');
         }
 
         // 2. Validar Organizer

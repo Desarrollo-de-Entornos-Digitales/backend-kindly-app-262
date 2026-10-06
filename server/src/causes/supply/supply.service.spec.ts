@@ -96,12 +96,12 @@ describe('SupplyService', () => {
         service = module.get<SupplyService>(SupplyService);
     });
 
-    it('debe estar definido el servicio', () => {
+    it('should be defined', () => {
         expect(service).toBeDefined();
     });
 
     describe('create', () => {
-        it('1. crea un supply correctamente', async () => {
+        it('1. should create a supply successfully', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
 
             const result = await service.create(1, mockCreateSupplyDto);
@@ -112,14 +112,14 @@ describe('SupplyService', () => {
             expect(result.quantity_needed).toBe(mockCreateSupplyDto.quantity_needed);
         });
 
-        it('2. falla si la causa no existe', async () => {
+        it('2. should fail if cause does not exist', async () => {
             (causeRepository.findOne as any).mockResolvedValue(null);
 
             await expect(service.create(999, mockCreateSupplyDto)).rejects.toThrow(CauseNotFoundException);
             expect(supplyRepository.save).not.toHaveBeenCalled();
         });
 
-        it('3. verifica que repository.save() sea llamado', async () => {
+        it('3. should verify that repository.save() is called', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
 
             await service.create(1, mockCreateSupplyDto);
@@ -130,7 +130,7 @@ describe('SupplyService', () => {
     });
 
     describe('findAllByCause', () => {
-        it('4. obtiene los supplies de una causa', async () => {
+        it('4. should retrieve all supplies of a cause', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
             (supplyRepository.find as any).mockResolvedValue([mockSupply]);
 
@@ -143,7 +143,7 @@ describe('SupplyService', () => {
             });
         });
 
-        it('5. retorna [] cuando no existen supplies', async () => {
+        it('5. should return [] when no supplies exist', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
             (supplyRepository.find as any).mockResolvedValue([]);
 
@@ -152,7 +152,7 @@ describe('SupplyService', () => {
             expect(result).toEqual([]);
         });
 
-        it('6. falla si la causa no existe', async () => {
+        it('6. should fail if cause does not exist', async () => {
             (causeRepository.findOne as any).mockResolvedValue(null);
 
             await expect(service.findAllByCause(999)).rejects.toThrow(CauseNotFoundException);
@@ -166,7 +166,7 @@ describe('SupplyService', () => {
             needed: false,
         };
 
-        it('7. actualiza un supply correctamente', async () => {
+        it('7. should update a supply successfully', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
             (supplyRepository.findOne as any).mockResolvedValue({ ...mockSupply });
 
@@ -177,14 +177,14 @@ describe('SupplyService', () => {
             expect(supplyRepository.save).toHaveBeenCalledTimes(1);
         });
 
-        it('8. falla si la causa no existe', async () => {
+        it('8. should fail if cause does not exist', async () => {
             (causeRepository.findOne as any).mockResolvedValue(null);
 
             await expect(service.update(999, 1, updateDto)).rejects.toThrow(CauseNotFoundException);
             expect(supplyRepository.findOne).not.toHaveBeenCalled();
         });
 
-        it('9. falla si el supply no existe', async () => {
+        it('9. should fail if supply does not exist', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
             (supplyRepository.findOne as any).mockResolvedValue(null);
 
@@ -192,7 +192,7 @@ describe('SupplyService', () => {
             expect(supplyRepository.save).not.toHaveBeenCalled();
         });
 
-        it('10. falla si el supply pertenece a otra causa', async () => {
+        it('10. should fail if supply belongs to another cause', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
             const foreignSupply = { ...mockSupply, cause_id: 2 };
             (supplyRepository.findOne as any).mockResolvedValue(foreignSupply);
@@ -201,7 +201,7 @@ describe('SupplyService', () => {
             expect(supplyRepository.save).not.toHaveBeenCalled();
         });
 
-        it('11. verifica save()', async () => {
+        it('11. should verify repository.save() is called on update', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
             (supplyRepository.findOne as any).mockResolvedValue({ ...mockSupply });
 
@@ -212,7 +212,7 @@ describe('SupplyService', () => {
     });
 
     describe('remove', () => {
-        it('12. elimina un supply correctamente', async () => {
+        it('12. should remove a supply successfully', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
             (supplyRepository.findOne as any).mockResolvedValue(mockSupply);
 
@@ -223,14 +223,14 @@ describe('SupplyService', () => {
             expect(supplyRepository.delete).toHaveBeenCalledWith(1);
         });
 
-        it('13. falla si la causa no existe', async () => {
+        it('13. should fail if cause does not exist', async () => {
             (causeRepository.findOne as any).mockResolvedValue(null);
 
             await expect(service.remove(999, 1)).rejects.toThrow(CauseNotFoundException);
             expect(supplyRepository.delete).not.toHaveBeenCalled();
         });
 
-        it('14. falla si el supply no existe', async () => {
+        it('14. should fail if supply does not exist', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
             (supplyRepository.findOne as any).mockResolvedValue(null);
 
@@ -238,7 +238,7 @@ describe('SupplyService', () => {
             expect(supplyRepository.delete).not.toHaveBeenCalled();
         });
 
-        it('15. falla si el supply pertenece a otra causa', async () => {
+        it('15. should fail if supply belongs to another cause', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
             const foreignSupply = { ...mockSupply, cause_id: 2 };
             (supplyRepository.findOne as any).mockResolvedValue(foreignSupply);
@@ -247,7 +247,7 @@ describe('SupplyService', () => {
             expect(supplyRepository.delete).not.toHaveBeenCalled();
         });
 
-        it('16. verifica delete() o el método equivalente usado', async () => {
+        it('16. should verify repository.delete() is called', async () => {
             (causeRepository.findOne as any).mockResolvedValue(mockCause);
             (supplyRepository.findOne as any).mockResolvedValue(mockSupply);
 

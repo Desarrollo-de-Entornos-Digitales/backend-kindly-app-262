@@ -95,12 +95,12 @@ describe('CausesService', () => {
         service = module.get<CausesService>(CausesService);
     });
 
-    it('debe estar definido el servicio', () => {
+    it('should be defined', () => {
         expect(service).toBeDefined();
     });
 
     describe('create', () => {
-        it('1. crea una causa correctamente', async () => {
+        it('1. should create a cause successfully', async () => {
             (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
             (categoryRepository.findOne as any).mockResolvedValue(mockCategory);
 
@@ -113,14 +113,14 @@ describe('CausesService', () => {
             expect(result.category).toEqual(mockCategory);
         });
 
-        it('2. lanza OrganizerNotFoundException si el organizer no existe', async () => {
+        it('2. should throw OrganizerNotFoundException if organizer does not exist', async () => {
             (organizerRepository.findOne as any).mockResolvedValue(null);
 
             await expect(service.create(mockValidDto)).rejects.toThrow(OrganizerNotFoundException);
             expect(causeRepository.save).not.toHaveBeenCalled();
         });
 
-        it('3. lanza OrganizationNotVerifiedException si el organizer no está verificado', async () => {
+        it('3. should throw OrganizationNotVerifiedException if organizer is not verified', async () => {
             const unverifiedOrganizer = {
                 ...mockOrganizer,
                 verification_status: 'pending',
@@ -131,7 +131,7 @@ describe('CausesService', () => {
             expect(causeRepository.save).not.toHaveBeenCalled();
         });
 
-        it('4. maneja categoría inexistente lanzando NotFoundException', async () => {
+        it('4. should handle non-existent category by throwing NotFoundException', async () => {
             (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
             (categoryRepository.findOne as any).mockResolvedValue(null);
 
@@ -139,7 +139,7 @@ describe('CausesService', () => {
             expect(causeRepository.save).not.toHaveBeenCalled();
         });
 
-        it('5. guarda correctamente la causa mediante el repository', async () => {
+        it('5. should save cause correctly via repository', async () => {
             (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
             (categoryRepository.findOne as any).mockResolvedValue(mockCategory);
 
@@ -149,7 +149,7 @@ describe('CausesService', () => {
             expect(causeRepository.save).toHaveBeenCalledTimes(1);
         });
 
-        it('6. establece correctamente los valores iniciales (is_available = true, progress = "open")', async () => {
+        it('6. should set initial values correctly (is_available = true, progress = "open")', async () => {
             (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
             (categoryRepository.findOne as any).mockResolvedValue(mockCategory);
 
@@ -161,7 +161,7 @@ describe('CausesService', () => {
             expect(result.qr_code.startsWith('QR-CAUSE-')).toBe(true);
         });
 
-        it('7. lanza BadRequestException si end_date es anterior a start_date', async () => {
+        it('7. should throw BadRequestException if end_date is before start_date', async () => {
             const invalidDatesDto: CreateCauseDto = {
                 ...mockValidDto,
                 start_date: '2026-11-05T10:00:00.000Z',
