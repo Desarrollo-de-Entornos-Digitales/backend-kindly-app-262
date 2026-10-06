@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus
 import { CausesService } from './causes.service';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
+import { PositiveIntPipe } from '../common/pipes/positive-int.pipe';
 
 @Controller('causes')
 export class CausesController {
@@ -21,6 +22,12 @@ export class CausesController {
     @Get(':id')
     findOne(@Param('id') id: string) {
         return this.causesService.findOne(+id);
+    }
+
+    @Patch(':causeId/publish')
+    @HttpCode(HttpStatus.OK)
+    publish(@Param('causeId', PositiveIntPipe) causeId: number) {
+        return this.causesService.publish(causeId);
     }
 
     @Patch(':id')

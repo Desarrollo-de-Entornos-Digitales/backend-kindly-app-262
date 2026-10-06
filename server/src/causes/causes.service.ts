@@ -6,7 +6,11 @@ import { UpdateCauseDto } from './dto/update-cause.dto';
 import { Cause } from './entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Category } from '../volunteers/entities/category.entity';
-import { OrganizerNotFoundException, OrganizationNotVerifiedException } from '../common/exceptions';
+import {
+    OrganizerNotFoundException,
+    OrganizationNotVerifiedException,
+    CauseNotFoundException,
+} from '../common/exceptions';
 
 @Injectable()
 export class CausesService {
@@ -55,10 +59,25 @@ export class CausesService {
             ...createCauseDto,
             organizer,
             category,
-            is_available: true,
+            is_available: false,
             progress: 'open',
             qr_code: `QR-CAUSE-${Date.now()}`,
         });
+
+        return await this.causeRepository.save(cause);
+    }
+
+    async publish(causeId: number): Promise<Cause> {
+        const cause = await this.causeRepository.findOne({
+            where: { id: causeId },
+        });
+
+        if (!cause) {
+            throw new CauseNotFoundException(causeId);
+        }
+
+        cause.is_available = true;
+        cause.progress = 'open';
 
         return await this.causeRepository.save(cause);
     }

@@ -8,7 +8,11 @@ import { Cause } from './entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Category } from '../volunteers/entities/category.entity';
 import { CreateCauseDto } from './dto/create-cause.dto';
-import { OrganizerNotFoundException, OrganizationNotVerifiedException } from '../common/exceptions';
+import {
+    OrganizerNotFoundException,
+    OrganizationNotVerifiedException,
+    CauseNotFoundException,
+} from '../common/exceptions';
 
 describe('CausesService', () => {
     let service: CausesService;
@@ -52,6 +56,32 @@ describe('CausesService', () => {
         volunteerCategories: [],
     };
 
+    const mockCause: Cause = {
+        id: 1,
+        organizer_id: 1,
+        category_id: 1,
+        title: 'Gran Sembratón',
+        cover_image_url: 'https://images.kindly.org/causes/sembraton.jpg',
+        description: 'Jornada de siembra comunitaria',
+        capacity: 50,
+        created_at: new Date(),
+        start_date: new Date(),
+        end_date: new Date(),
+        address: 'Parque Ecológico',
+        is_available: false,
+        location_latitude: '6.2442',
+        location_longitude: '-75.5812',
+        progress: 'open',
+        qr_code: 'QR-CAUSE-001',
+        organizer: mockOrganizer,
+        category: mockCategory,
+        supplies: [],
+        images: [],
+        announcements: [],
+        submissions: [],
+        attendances: [],
+    };
+
     beforeEach(async () => {
         causeRepository = {
             create: jest.fn<any>().mockImplementation((dto: any) => ({
@@ -64,6 +94,7 @@ describe('CausesService', () => {
                     id: cause.id || 10,
                 }),
             ),
+            findOne: jest.fn<any>(),
         };
 
         organizerRepository = {
@@ -149,13 +180,13 @@ describe('CausesService', () => {
             expect(causeRepository.save).toHaveBeenCalledTimes(1);
         });
 
-        it('6. should set initial values correctly (is_available = true, progress = "open")', async () => {
+        it('6. should set initial values correctly (is_available = false, progress = "open")', async () => {
             (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
             (categoryRepository.findOne as any).mockResolvedValue(mockCategory);
 
             const result = await service.create(mockValidDto);
 
-            expect(result.is_available).toBe(true);
+            expect(result.is_available).toBe(false);
             expect(result.progress).toBe('open');
             expect(result.qr_code).toBeDefined();
             expect(result.qr_code.startsWith('QR-CAUSE-')).toBe(true);
@@ -171,6 +202,53 @@ describe('CausesService', () => {
             await expect(service.create(invalidDatesDto)).rejects.toThrow(BadRequestException);
             expect(organizerRepository.findOne).not.toHaveBeenCalled();
             expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('publish', () => {
+        it('8. should publish a cause successfully (is_available changes to true, progress remains "open")', async () => {
+            const unpublishedCause = { ...mockCause, is_available: false, progress: 'open' };
+            (causeRepository.findOne as any).mockResolvedValue(unpublishedCause);
+
+            const result = await service.publish(1);
+
+            expect(result.is_available).toBe(true);
+            expect(result.progress).toBe('open');
+            expect(causeRepository.save).toHaveBeenCalledTimes(1);
+        });
+
+        it('9. should fail if cause does not exist', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.publish(999)).rejects.toThrow(CauseNotFoundException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('10. should verify repository.save() is called when publishing', async () => {
+            const unpublishedCause = { ...mockCause, is_available: false };
+            (causeRepository.findOne as any).mockResolvedValue(unpublishedCause);
+
+            await service.publish(1);
+
+            expect(causeRepository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+            expect(causeRepository.save).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 1,
+                    is_available: true,
+                    progress: 'open',
+                }),
+            );
+        });
+
+        it('11. should be idempotent if cause is already available (remains is_available = true, progress = "open")', async () => {
+            const alreadyAvailableCause = { ...mockCause, is_available: true, progress: 'open' };
+            (causeRepository.findOne as any).mockResolvedValue(alreadyAvailableCause);
+
+            const result = await service.publish(1);
+
+            expect(result.is_available).toBe(true);
+            expect(result.progress).toBe('open');
+            expect(causeRepository.save).toHaveBeenCalledTimes(1);
         });
     });
 });
