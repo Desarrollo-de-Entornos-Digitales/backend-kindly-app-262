@@ -11,6 +11,7 @@ import { Submission } from '../participations/entities/submission.entity';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
+import { UpdateProgressDto } from './dto/update-progress.dto';
 import { PositiveIntPipe } from '../common/pipes/positive-int.pipe';
 import { ValidationPipe } from '@nestjs/common';
 import {
@@ -854,6 +855,312 @@ describe('CausesService', () => {
             expect(() => pipe.transform(undefined as any, { type: 'query', data: 'organizer_id' })).toThrow(
                 BadRequestException,
             );
+        });
+    });
+
+    describe('updateProgress', () => {
+        const validationPipe = new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+            transformOptions: {
+                enableImplicitConversion: true,
+            },
+        });
+
+        it('59. should successfully transition progress from "open" to "in_progress"', async () => {
+            const openCause = { ...mockCause, progress: 'open' };
+            (causeRepository.findOne as any).mockResolvedValue(openCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateProgress(1, 1, { progress: 'in_progress' });
+
+            expect(result.progress).toBe('in_progress');
+            expect(causeRepository.save).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 1,
+                    progress: 'in_progress',
+                }),
+            );
+        });
+
+        it('60. should successfully transition progress from "in_progress" to "completed"', async () => {
+            const inProgressCause = { ...mockCause, progress: 'in_progress' };
+            (causeRepository.findOne as any).mockResolvedValue(inProgressCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateProgress(1, 1, { progress: 'completed' });
+
+            expect(result.progress).toBe('completed');
+            expect(causeRepository.save).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 1,
+                    progress: 'completed',
+                }),
+            );
+        });
+
+        it('61. should be idempotent when transitioning from "open" to "open"', async () => {
+            const openCause = { ...mockCause, progress: 'open' };
+            (causeRepository.findOne as any).mockResolvedValue(openCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateProgress(1, 1, { progress: 'open' });
+
+            expect(result.progress).toBe('open');
+            expect(causeRepository.save).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 1,
+                    progress: 'open',
+                }),
+            );
+        });
+
+        it('62. should be idempotent when transitioning from "in_progress" to "in_progress"', async () => {
+            const inProgressCause = { ...mockCause, progress: 'in_progress' };
+            (causeRepository.findOne as any).mockResolvedValue(inProgressCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateProgress(1, 1, { progress: 'in_progress' });
+
+            expect(result.progress).toBe('in_progress');
+            expect(causeRepository.save).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 1,
+                    progress: 'in_progress',
+                }),
+            );
+        });
+
+        it('63. should be idempotent when transitioning from "completed" to "completed"', async () => {
+            const completedCause = { ...mockCause, progress: 'completed' };
+            (causeRepository.findOne as any).mockResolvedValue(completedCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateProgress(1, 1, { progress: 'completed' });
+
+            expect(result.progress).toBe('completed');
+            expect(causeRepository.save).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 1,
+                    progress: 'completed',
+                }),
+            );
+        });
+
+        it('64. should throw BadRequestException when attempting forbidden transition from "open" directly to "completed"', async () => {
+            const openCause = { ...mockCause, progress: 'open' };
+            (causeRepository.findOne as any).mockResolvedValue(openCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            await expect(service.updateProgress(1, 1, { progress: 'completed' })).rejects.toThrow(BadRequestException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('65. should throw BadRequestException when attempting forbidden transition from "in_progress" back to "open"', async () => {
+            const inProgressCause = { ...mockCause, progress: 'in_progress' };
+            (causeRepository.findOne as any).mockResolvedValue(inProgressCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            await expect(service.updateProgress(1, 1, { progress: 'open' })).rejects.toThrow(BadRequestException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('66. should throw BadRequestException when attempting forbidden transition from "completed" back to "open"', async () => {
+            const completedCause = { ...mockCause, progress: 'completed' };
+            (causeRepository.findOne as any).mockResolvedValue(completedCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            await expect(service.updateProgress(1, 1, { progress: 'open' })).rejects.toThrow(BadRequestException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('67. should throw BadRequestException when attempting forbidden transition from "completed" back to "in_progress"', async () => {
+            const completedCause = { ...mockCause, progress: 'completed' };
+            (causeRepository.findOne as any).mockResolvedValue(completedCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            await expect(service.updateProgress(1, 1, { progress: 'in_progress' })).rejects.toThrow(
+                BadRequestException,
+            );
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('68. should reject payload with invalid progress value via ValidationPipe', async () => {
+            const invalidPayload = { progress: 'cancelled' };
+
+            await expect(
+                validationPipe.transform(invalidPayload, {
+                    type: 'body',
+                    metatype: UpdateProgressDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('69. should reject payload when progress is missing via ValidationPipe', async () => {
+            const missingPayload = {};
+
+            await expect(
+                validationPipe.transform(missingPayload, {
+                    type: 'body',
+                    metatype: UpdateProgressDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('70. should reject payload when progress is non-string via ValidationPipe', async () => {
+            const numberPayload = { progress: 123 };
+
+            await expect(
+                validationPipe.transform(numberPayload, {
+                    type: 'body',
+                    metatype: UpdateProgressDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+
+            const booleanPayload = { progress: true };
+
+            await expect(
+                validationPipe.transform(booleanPayload, {
+                    type: 'body',
+                    metatype: UpdateProgressDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('71. should reject payload when extra forbidden body fields are provided via ValidationPipe', async () => {
+            const extraFieldsPayload = { progress: 'in_progress', is_available: true };
+
+            await expect(
+                validationPipe.transform(extraFieldsPayload, {
+                    type: 'body',
+                    metatype: UpdateProgressDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('72. should throw CauseNotFoundException when cause does not exist', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.updateProgress(999, 1, { progress: 'in_progress' })).rejects.toThrow(
+                CauseNotFoundException,
+            );
+            expect(causeRepository.findOne).toHaveBeenCalledWith({ where: { id: 999 } });
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('73. should throw OrganizerNotFoundException when organizer does not exist', async () => {
+            const openCause = { ...mockCause, progress: 'open' };
+            (causeRepository.findOne as any).mockResolvedValue(openCause);
+            (organizerRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.updateProgress(1, 999, { progress: 'in_progress' })).rejects.toThrow(
+                OrganizerNotFoundException,
+            );
+            expect(organizerRepository.findOne).toHaveBeenCalledWith({ where: { id: 999 } });
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('74. should throw ForbiddenException when cause belongs to another organizer', async () => {
+            const causeOfOtherOrganizer = { ...mockCause, organizer_id: 2, progress: 'open' };
+            (causeRepository.findOne as any).mockResolvedValue(causeOfOtherOrganizer);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            await expect(service.updateProgress(1, 1, { progress: 'in_progress' })).rejects.toThrow(ForbiddenException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('75. should throw BadRequestException for invalid cause ID via PositiveIntPipe', () => {
+            const pipe = new PositiveIntPipe();
+
+            expect(() => pipe.transform('abc', { type: 'param', data: 'id' })).toThrow(BadRequestException);
+            expect(() => pipe.transform('-1', { type: 'param', data: 'id' })).toThrow(BadRequestException);
+            expect(() => pipe.transform('0', { type: 'param', data: 'id' })).toThrow(BadRequestException);
+        });
+
+        it('76. should throw BadRequestException for invalid organizer ID via PositiveIntPipe', () => {
+            const pipe = new PositiveIntPipe();
+
+            expect(() => pipe.transform('xyz', { type: 'query', data: 'organizer_id' })).toThrow(BadRequestException);
+            expect(() => pipe.transform('-5', { type: 'query', data: 'organizer_id' })).toThrow(BadRequestException);
+        });
+
+        it('77. should throw BadRequestException for missing organizer_id via PositiveIntPipe', () => {
+            const pipe = new PositiveIntPipe();
+
+            expect(() => pipe.transform(undefined as any, { type: 'query', data: 'organizer_id' })).toThrow(
+                BadRequestException,
+            );
+        });
+
+        it('78. should verify is_available remains unchanged when progress changes', async () => {
+            const openCause = { ...mockCause, progress: 'open', is_available: false };
+            (causeRepository.findOne as any).mockResolvedValue(openCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateProgress(1, 1, { progress: 'in_progress' });
+
+            expect(result.progress).toBe('in_progress');
+            expect(result.is_available).toBe(false);
+        });
+
+        it('79. should verify capacity remains unchanged when progress changes', async () => {
+            const openCause = { ...mockCause, progress: 'open', capacity: 42 };
+            (causeRepository.findOne as any).mockResolvedValue(openCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateProgress(1, 1, { progress: 'in_progress' });
+
+            expect(result.progress).toBe('in_progress');
+            expect(result.capacity).toBe(42);
+        });
+
+        it('80. should verify unrelated cause fields remain unchanged when progress changes', async () => {
+            const originalCause = {
+                ...mockCause,
+                progress: 'open',
+                title: 'Original Title',
+                description: 'Original Description',
+                address: 'Original Address',
+                qr_code: 'QR-ORIGINAL',
+                category_id: 1,
+                organizer_id: 1,
+            };
+            (causeRepository.findOne as any).mockResolvedValue(originalCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateProgress(1, 1, { progress: 'in_progress' });
+
+            expect(result.title).toBe('Original Title');
+            expect(result.description).toBe('Original Description');
+            expect(result.address).toBe('Original Address');
+            expect(result.qr_code).toBe('QR-ORIGINAL');
+            expect(result.category_id).toBe(1);
+            expect(result.organizer_id).toBe(1);
+            expect(result.progress).toBe('in_progress');
+        });
+
+        it('81. should successfully validate valid UpdateProgressDto payloads via ValidationPipe', async () => {
+            const payloadOpen = { progress: 'open' };
+            const transformedOpen = await validationPipe.transform(payloadOpen, {
+                type: 'body',
+                metatype: UpdateProgressDto,
+            });
+            expect(transformedOpen).toEqual({ progress: 'open' });
+
+            const payloadInProgress = { progress: 'in_progress' };
+            const transformedInProgress = await validationPipe.transform(payloadInProgress, {
+                type: 'body',
+                metatype: UpdateProgressDto,
+            });
+            expect(transformedInProgress).toEqual({ progress: 'in_progress' });
+
+            const payloadCompleted = { progress: 'completed' };
+            const transformedCompleted = await validationPipe.transform(payloadCompleted, {
+                type: 'body',
+                metatype: UpdateProgressDto,
+            });
+            expect(transformedCompleted).toEqual({ progress: 'completed' });
         });
     });
 });

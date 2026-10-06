@@ -3,6 +3,7 @@ import { CausesService } from './causes.service';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
+import { UpdateProgressDto } from './dto/update-progress.dto';
 import { PositiveIntPipe } from '../common/pipes/positive-int.pipe';
 
 @Controller('causes')
@@ -53,6 +54,15 @@ export class CausesController {
         @Body() updateAvailabilityDto: UpdateAvailabilityDto,
     ) {
         return this.causesService.updateAvailability(id, organizerId, updateAvailabilityDto);
+    }
+
+    @Patch(':id/progress')
+    updateProgress(
+        @Param('id', PositiveIntPipe) id: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
+        @Body() updateProgressDto: UpdateProgressDto,
+    ) {
+        return this.causesService.updateProgress(id, organizerId, updateProgressDto);
     }
 
     @Patch(':id')
