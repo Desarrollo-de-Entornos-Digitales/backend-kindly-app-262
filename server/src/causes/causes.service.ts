@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Raw, Repository } from 'typeorm';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
+import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { Cause } from './entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Category } from '../volunteers/entities/category.entity';
@@ -227,6 +228,45 @@ export class CausesService {
             is_full,
             status_display,
         };
+    }
+
+    async updateAvailability(
+        causeId: number,
+        organizerId: number,
+        updateAvailabilityDto: UpdateAvailabilityDto,
+    ): Promise<Cause> {
+        // 1. Validar existencia de la causa
+        const cause = await this.causeRepository.findOne({
+            where: { id: causeId },
+        });
+
+        if (!cause) {
+            throw new CauseNotFoundException(causeId);
+        }
+
+        // 2. Validar existencia del organizador
+        const organizer = await this.organizerRepository.findOne({
+            where: { id: organizerId },
+        });
+
+        if (!organizer) {
+            throw new OrganizerNotFoundException(organizerId);
+        }
+
+        // 3. Validar pertenencia: la causa debe pertenecer al organizer solicitante
+        if (cause.organizer_id !== organizerId) {
+            throw new ForbiddenException(
+                `Cause with ID '${causeId}' does not belong to organizer with ID '${organizerId}'.`,
+            );
+        }
+
+        // 4. Actualizar disponibilidad de forma idempotente sin modificar ningún otro campo
+        cause.is_available = updateAvailabilityDto.is_available;
+
+        // Campos protegidos que NUNCA se alteran en esta historia:
+        // cause.id, cause.organizer_id, cause.created_at, cause.qr_code, cause.progress, cause.capacity, etc.
+
+        return await this.causeRepository.save(cause);
     }
 
     remove(id: number) {

@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, Htt
 import { CausesService } from './causes.service';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
+import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { PositiveIntPipe } from '../common/pipes/positive-int.pipe';
 
 @Controller('causes')
@@ -43,6 +44,15 @@ export class CausesController {
     @HttpCode(HttpStatus.OK)
     publish(@Param('causeId', PositiveIntPipe) causeId: number) {
         return this.causesService.publish(causeId);
+    }
+
+    @Patch(':id/availability')
+    updateAvailability(
+        @Param('id', PositiveIntPipe) id: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
+        @Body() updateAvailabilityDto: UpdateAvailabilityDto,
+    ) {
+        return this.causesService.updateAvailability(id, organizerId, updateAvailabilityDto);
     }
 
     @Patch(':id')

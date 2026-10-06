@@ -10,6 +10,9 @@ import { Category } from '../volunteers/entities/category.entity';
 import { Submission } from '../participations/entities/submission.entity';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
+import { UpdateAvailabilityDto } from './dto/update-availability.dto';
+import { PositiveIntPipe } from '../common/pipes/positive-int.pipe';
+import { ValidationPipe } from '@nestjs/common';
 import {
     OrganizerNotFoundException,
     OrganizationNotVerifiedException,
@@ -645,6 +648,212 @@ describe('CausesService', () => {
 
             const resultWithoutLimit = await service.getCapacity(1, 1);
             expect(resultWithoutLimit.status_display).toBe('12 volunteers (no limit)');
+        });
+    });
+
+    describe('updateAvailability', () => {
+        const validationPipe = new ValidationPipe({
+            whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+        });
+
+        it('42. should successfully change availability from true to false (close availability)', async () => {
+            const availableCause = { ...mockCause, is_available: true };
+            (causeRepository.findOne as any).mockResolvedValue(availableCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateAvailability(1, 1, { is_available: false });
+
+            expect(result.is_available).toBe(false);
+            expect(causeRepository.save).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 1,
+                    is_available: false,
+                }),
+            );
+        });
+
+        it('43. should successfully change availability from false to true (reopen availability)', async () => {
+            const unavailableCause = { ...mockCause, is_available: false };
+            (causeRepository.findOne as any).mockResolvedValue(unavailableCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateAvailability(1, 1, { is_available: true });
+
+            expect(result.is_available).toBe(true);
+            expect(causeRepository.save).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    id: 1,
+                    is_available: true,
+                }),
+            );
+        });
+
+        it('44. should be idempotent when changing availability from false to false', async () => {
+            const alreadyClosedCause = { ...mockCause, is_available: false };
+            (causeRepository.findOne as any).mockResolvedValue(alreadyClosedCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateAvailability(1, 1, { is_available: false });
+
+            expect(result.is_available).toBe(false);
+        });
+
+        it('45. should be idempotent when changing availability from true to true', async () => {
+            const alreadyOpenCause = { ...mockCause, is_available: true };
+            (causeRepository.findOne as any).mockResolvedValue(alreadyOpenCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateAvailability(1, 1, { is_available: true });
+
+            expect(result.is_available).toBe(true);
+        });
+
+        it('46. should throw CauseNotFoundException when cause does not exist', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.updateAvailability(999, 1, { is_available: false })).rejects.toThrow(
+                CauseNotFoundException,
+            );
+            expect(causeRepository.findOne).toHaveBeenCalledWith({ where: { id: 999 } });
+        });
+
+        it('47. should throw OrganizerNotFoundException when organizer does not exist', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+            (organizerRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.updateAvailability(1, 999, { is_available: false })).rejects.toThrow(
+                OrganizerNotFoundException,
+            );
+            expect(organizerRepository.findOne).toHaveBeenCalledWith({ where: { id: 999 } });
+        });
+
+        it('48. should throw ForbiddenException when requesting organizer is not the owner', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+            (organizerRepository.findOne as any).mockResolvedValue({ ...mockOrganizer, id: 2 });
+
+            await expect(service.updateAvailability(1, 2, { is_available: false })).rejects.toThrow(ForbiddenException);
+        });
+
+        it('49. should verify progress remains unchanged when availability changes', async () => {
+            const inProgressCause = { ...mockCause, progress: 'in_progress', is_available: true };
+            (causeRepository.findOne as any).mockResolvedValue(inProgressCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateAvailability(1, 1, { is_available: false });
+
+            expect(result.progress).toBe('in_progress');
+            expect(result.is_available).toBe(false);
+        });
+
+        it('50. should verify unrelated cause fields remain unchanged when availability changes', async () => {
+            const originalCause = {
+                ...mockCause,
+                capacity: 50,
+                title: 'Original Title',
+                description: 'Original Description',
+                address: 'Original Address',
+                qr_code: 'QR-ORIGINAL',
+                is_available: true,
+            };
+            (causeRepository.findOne as any).mockResolvedValue(originalCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateAvailability(1, 1, { is_available: false });
+
+            expect(result.capacity).toBe(50);
+            expect(result.title).toBe('Original Title');
+            expect(result.description).toBe('Original Description');
+            expect(result.address).toBe('Original Address');
+            expect(result.qr_code).toBe('QR-ORIGINAL');
+            expect(result.is_available).toBe(false);
+        });
+
+        it('51. should successfully validate valid UpdateAvailabilityDto payload via ValidationPipe', async () => {
+            const payload = { is_available: true };
+            const transformed = await validationPipe.transform(payload, {
+                type: 'body',
+                metatype: UpdateAvailabilityDto,
+            });
+
+            expect(transformed).toEqual({ is_available: true });
+
+            const payloadFalse = { is_available: false };
+            const transformedFalse = await validationPipe.transform(payloadFalse, {
+                type: 'body',
+                metatype: UpdateAvailabilityDto,
+            });
+
+            expect(transformedFalse).toEqual({ is_available: false });
+        });
+
+        it('52. should reject payload when is_available is missing via ValidationPipe', async () => {
+            const payload = {};
+
+            await expect(
+                validationPipe.transform(payload, {
+                    type: 'body',
+                    metatype: UpdateAvailabilityDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('53. should reject payload when is_available is non-boolean via ValidationPipe', async () => {
+            const payload = { is_available: 'invalid-string' };
+
+            await expect(
+                validationPipe.transform(payload, {
+                    type: 'body',
+                    metatype: UpdateAvailabilityDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('54. should reject payload when extra forbidden body fields are provided via ValidationPipe', async () => {
+            const payload = { is_available: false, progress: 'completed' };
+
+            await expect(
+                validationPipe.transform(payload, {
+                    type: 'body',
+                    metatype: UpdateAvailabilityDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('55. should save and return updated cause instance with is_available set', async () => {
+            const cause = { ...mockCause, is_available: true };
+            (causeRepository.findOne as any).mockResolvedValue(cause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.updateAvailability(1, 1, { is_available: false });
+
+            expect(result.id).toBe(1);
+            expect(result.is_available).toBe(false);
+            expect(causeRepository.save).toHaveBeenCalled();
+        });
+
+        it('56. should throw BadRequestException for invalid cause ID via PositiveIntPipe', () => {
+            const pipe = new PositiveIntPipe();
+
+            expect(() => pipe.transform('abc', { type: 'param', data: 'id' })).toThrow(BadRequestException);
+            expect(() => pipe.transform('-1', { type: 'param', data: 'id' })).toThrow(BadRequestException);
+            expect(() => pipe.transform('0', { type: 'param', data: 'id' })).toThrow(BadRequestException);
+        });
+
+        it('57. should throw BadRequestException for invalid organizer ID via PositiveIntPipe', () => {
+            const pipe = new PositiveIntPipe();
+
+            expect(() => pipe.transform('xyz', { type: 'query', data: 'organizer_id' })).toThrow(BadRequestException);
+            expect(() => pipe.transform('-5', { type: 'query', data: 'organizer_id' })).toThrow(BadRequestException);
+        });
+
+        it('58. should throw BadRequestException for missing organizer_id via PositiveIntPipe', () => {
+            const pipe = new PositiveIntPipe();
+
+            expect(() => pipe.transform(undefined as any, { type: 'query', data: 'organizer_id' })).toThrow(
+                BadRequestException,
+            );
         });
     });
 });
