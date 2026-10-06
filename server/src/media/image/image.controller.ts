@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ImageService } from './image.service';
 import { CreateImageDto } from './dto/create-image.dto';
 import { PositiveIntPipe } from '../../common/pipes/positive-int.pipe';
@@ -9,8 +9,12 @@ export class ImageController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    create(@Param('causeId', PositiveIntPipe) causeId: number, @Body() createImageDto: CreateImageDto) {
-        return this.imageService.create(causeId, createImageDto);
+    create(
+        @Param('causeId', PositiveIntPipe) causeId: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
+        @Body() createImageDto: CreateImageDto,
+    ) {
+        return this.imageService.create(causeId, organizerId, createImageDto);
     }
 
     @Get()
@@ -19,7 +23,11 @@ export class ImageController {
     }
 
     @Delete(':imageId')
-    remove(@Param('causeId', PositiveIntPipe) causeId: number, @Param('imageId', PositiveIntPipe) imageId: number) {
-        return this.imageService.remove(causeId, imageId);
+    remove(
+        @Param('causeId', PositiveIntPipe) causeId: number,
+        @Param('imageId', PositiveIntPipe) imageId: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
+    ) {
+        return this.imageService.remove(causeId, imageId, organizerId);
     }
 }

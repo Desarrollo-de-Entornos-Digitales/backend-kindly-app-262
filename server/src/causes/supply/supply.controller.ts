@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { SupplyService } from './supply.service';
 import { CreateSupplyDto } from './dto/create-supply.dto';
 import { UpdateSupplyDto } from './dto/update-supply.dto';
@@ -10,8 +10,12 @@ export class SupplyController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    create(@Param('causeId', PositiveIntPipe) causeId: number, @Body() createSupplyDto: CreateSupplyDto) {
-        return this.supplyService.create(causeId, createSupplyDto);
+    create(
+        @Param('causeId', PositiveIntPipe) causeId: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
+        @Body() createSupplyDto: CreateSupplyDto,
+    ) {
+        return this.supplyService.create(causeId, organizerId, createSupplyDto);
     }
 
     @Get()
@@ -23,13 +27,18 @@ export class SupplyController {
     update(
         @Param('causeId', PositiveIntPipe) causeId: number,
         @Param('supplyId', PositiveIntPipe) supplyId: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
         @Body() updateSupplyDto: UpdateSupplyDto,
     ) {
-        return this.supplyService.update(causeId, supplyId, updateSupplyDto);
+        return this.supplyService.update(causeId, supplyId, organizerId, updateSupplyDto);
     }
 
     @Delete(':supplyId')
-    remove(@Param('causeId', PositiveIntPipe) causeId: number, @Param('supplyId', PositiveIntPipe) supplyId: number) {
-        return this.supplyService.remove(causeId, supplyId);
+    remove(
+        @Param('causeId', PositiveIntPipe) causeId: number,
+        @Param('supplyId', PositiveIntPipe) supplyId: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
+    ) {
+        return this.supplyService.remove(causeId, supplyId, organizerId);
     }
 }
