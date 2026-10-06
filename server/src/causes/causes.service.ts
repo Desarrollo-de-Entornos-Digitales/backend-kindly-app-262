@@ -82,6 +82,20 @@ export class CausesService {
         return await this.causeRepository.save(cause);
     }
 
+    async findMyCauses(organizerId: number): Promise<Cause[]> {
+        const organizer = await this.organizerRepository.findOne({
+            where: { id: organizerId },
+        });
+
+        if (!organizer) {
+            throw new OrganizerNotFoundException(organizerId);
+        }
+
+        return await this.causeRepository.find({
+            where: { organizer_id: organizerId },
+        });
+    }
+
     findAll() {
         return `This action returns all causes`;
     }

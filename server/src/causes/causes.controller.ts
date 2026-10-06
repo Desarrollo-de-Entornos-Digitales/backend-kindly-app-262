@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { CausesService } from './causes.service';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
@@ -17,6 +17,16 @@ export class CausesController {
     @Get()
     findAll() {
         return this.causesService.findAll();
+    }
+
+    @Get('my-causes')
+    findMyCauses(@Query('organizer_id', PositiveIntPipe) organizerId: number) {
+        return this.causesService.findMyCauses(organizerId);
+    }
+
+    @Get('organizer/:organizerId')
+    findByOrganizer(@Param('organizerId', PositiveIntPipe) organizerId: number) {
+        return this.causesService.findMyCauses(organizerId);
     }
 
     @Get(':id')

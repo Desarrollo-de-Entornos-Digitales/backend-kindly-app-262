@@ -95,6 +95,7 @@ describe('CausesService', () => {
                 }),
             ),
             findOne: jest.fn<any>(),
+            find: jest.fn<any>(),
         };
 
         organizerRepository = {
@@ -249,6 +250,73 @@ describe('CausesService', () => {
             expect(result.is_available).toBe(true);
             expect(result.progress).toBe('open');
             expect(causeRepository.save).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('findMyCauses', () => {
+        it('12. should return only causes belonging to the specified organizer', async () => {
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (causeRepository.find as any).mockResolvedValue([mockCause]);
+
+            const result = await service.findMyCauses(1);
+
+            expect(result).toHaveLength(1);
+            expect(result[0].organizer_id).toBe(1);
+            expect(causeRepository.find).toHaveBeenCalledWith({
+                where: { organizer_id: 1 },
+            });
+        });
+
+        it('13. should return multiple causes when organizer has several causes', async () => {
+            const secondCause: Cause = {
+                ...mockCause,
+                id: 4,
+                title: 'Taller de Huerta Escolar y Reciclaje',
+            };
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (causeRepository.find as any).mockResolvedValue([mockCause, secondCause]);
+
+            const result = await service.findMyCauses(1);
+
+            expect(result).toHaveLength(2);
+            expect(result.every((cause) => cause.organizer_id === 1)).toBe(true);
+        });
+
+        it('14. should return [] when organizer exists but has no causes', async () => {
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (causeRepository.find as any).mockResolvedValue([]);
+
+            const result = await service.findMyCauses(1);
+
+            expect(result).toEqual([]);
+        });
+
+        it('15. should throw OrganizerNotFoundException if organizer does not exist', async () => {
+            (organizerRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.findMyCauses(999)).rejects.toThrow(OrganizerNotFoundException);
+            expect(causeRepository.find).not.toHaveBeenCalled();
+        });
+
+        it('16. should verify that query uses the correct organizer_id', async () => {
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (causeRepository.find as any).mockResolvedValue([mockCause]);
+
+            await service.findMyCauses(1);
+
+            expect(organizerRepository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
+            expect(causeRepository.find).toHaveBeenCalledWith({
+                where: { organizer_id: 1 },
+            });
+        });
+
+        it('17. should ensure no causes from other organizers are included in result', async () => {
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (causeRepository.find as any).mockResolvedValue([mockCause]);
+
+            const result = await service.findMyCauses(1);
+
+            expect(result.some((cause) => cause.organizer_id !== 1)).toBe(false);
         });
     });
 });
