@@ -1,34 +1,35 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
 import { SupplyService } from './supply.service';
 import { CreateSupplyDto } from './dto/create-supply.dto';
 import { UpdateSupplyDto } from './dto/update-supply.dto';
+import { PositiveIntPipe } from '../../common/pipes/positive-int.pipe';
 
-@Controller('supply')
+@Controller('causes/:causeId/supplies')
 export class SupplyController {
     constructor(private readonly supplyService: SupplyService) {}
 
     @Post()
-    create(@Body() createSupplyDto: CreateSupplyDto) {
-        return this.supplyService.create(createSupplyDto);
+    @HttpCode(HttpStatus.CREATED)
+    create(@Param('causeId', PositiveIntPipe) causeId: number, @Body() createSupplyDto: CreateSupplyDto) {
+        return this.supplyService.create(causeId, createSupplyDto);
     }
 
     @Get()
-    findAll() {
-        return this.supplyService.findAll();
+    findAll(@Param('causeId', PositiveIntPipe) causeId: number) {
+        return this.supplyService.findAllByCause(causeId);
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.supplyService.findOne(+id);
+    @Patch(':supplyId')
+    update(
+        @Param('causeId', PositiveIntPipe) causeId: number,
+        @Param('supplyId', PositiveIntPipe) supplyId: number,
+        @Body() updateSupplyDto: UpdateSupplyDto,
+    ) {
+        return this.supplyService.update(causeId, supplyId, updateSupplyDto);
     }
 
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateSupplyDto: UpdateSupplyDto) {
-        return this.supplyService.update(+id, updateSupplyDto);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.supplyService.remove(+id);
+    @Delete(':supplyId')
+    remove(@Param('causeId', PositiveIntPipe) causeId: number, @Param('supplyId', PositiveIntPipe) supplyId: number) {
+        return this.supplyService.remove(causeId, supplyId);
     }
 }
