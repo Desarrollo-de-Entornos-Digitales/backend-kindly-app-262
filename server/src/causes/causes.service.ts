@@ -72,13 +72,30 @@ export class CausesService {
         return await this.causeRepository.save(cause);
     }
 
-    async publish(causeId: number): Promise<Cause> {
+    async publish(causeId: number, organizerId: number): Promise<Cause> {
+        // 1. Validar existencia del organizador
+        const organizer = await this.organizerRepository.findOne({
+            where: { id: organizerId },
+        });
+
+        if (!organizer) {
+            throw new OrganizerNotFoundException(organizerId);
+        }
+
+        // 2. Validar existencia de la causa
         const cause = await this.causeRepository.findOne({
             where: { id: causeId },
         });
 
         if (!cause) {
             throw new CauseNotFoundException(causeId);
+        }
+
+        // 3. Validar pertenencia: la causa debe pertenecer al organizer solicitante
+        if (cause.organizer_id !== organizerId) {
+            throw new ForbiddenException(
+                `Cause with ID '${causeId}' does not belong to organizer with ID '${organizerId}'.`,
+            );
         }
 
         cause.is_available = true;

@@ -43,8 +43,11 @@ export class CausesController {
 
     @Patch(':causeId/publish')
     @HttpCode(HttpStatus.OK)
-    publish(@Param('causeId', PositiveIntPipe) causeId: number) {
-        return this.causesService.publish(causeId);
+    publish(
+        @Param('causeId', PositiveIntPipe) causeId: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
+    ) {
+        return this.causesService.publish(causeId, organizerId);
     }
 
     @Patch(':id/availability')

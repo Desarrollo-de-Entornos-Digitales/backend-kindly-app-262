@@ -222,11 +222,12 @@ describe('CausesService', () => {
     });
 
     describe('publish', () => {
-        it('8. should publish a cause successfully (is_available changes to true, progress remains "open")', async () => {
+        it('8. should publish a cause successfully for owner (is_available changes to true, progress remains "open")', async () => {
             const unpublishedCause = { ...mockCause, is_available: false, progress: 'open' };
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
             (causeRepository.findOne as any).mockResolvedValue(unpublishedCause);
 
-            const result = await service.publish(1);
+            const result = await service.publish(1, 1);
 
             expect(result.is_available).toBe(true);
             expect(result.progress).toBe('open');
@@ -234,17 +235,35 @@ describe('CausesService', () => {
         });
 
         it('9. should fail if cause does not exist', async () => {
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
             (causeRepository.findOne as any).mockResolvedValue(null);
 
-            await expect(service.publish(999)).rejects.toThrow(CauseNotFoundException);
+            await expect(service.publish(999, 1)).rejects.toThrow(CauseNotFoundException);
             expect(causeRepository.save).not.toHaveBeenCalled();
         });
 
-        it('10. should verify repository.save() is called when publishing', async () => {
+        it('10. should reject non-owner organizer with ForbiddenException (403)', async () => {
+            const otherOrganizer = { ...mockOrganizer, id: 2 };
+            (organizerRepository.findOne as any).mockResolvedValue(otherOrganizer);
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+
+            await expect(service.publish(1, 2)).rejects.toThrow(ForbiddenException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('10b. should reject nonexistent organizer with OrganizerNotFoundException (404)', async () => {
+            (organizerRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.publish(1, 999)).rejects.toThrow(OrganizerNotFoundException);
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('10c. should verify repository.save() is called when publishing', async () => {
             const unpublishedCause = { ...mockCause, is_available: false };
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
             (causeRepository.findOne as any).mockResolvedValue(unpublishedCause);
 
-            await service.publish(1);
+            await service.publish(1, 1);
 
             expect(causeRepository.findOne).toHaveBeenCalledWith({ where: { id: 1 } });
             expect(causeRepository.save).toHaveBeenCalledWith(
@@ -258,9 +277,10 @@ describe('CausesService', () => {
 
         it('11. should be idempotent if cause is already available (remains is_available = true, progress = "open")', async () => {
             const alreadyAvailableCause = { ...mockCause, is_available: true, progress: 'open' };
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
             (causeRepository.findOne as any).mockResolvedValue(alreadyAvailableCause);
 
-            const result = await service.publish(1);
+            const result = await service.publish(1, 1);
 
             expect(result.is_available).toBe(true);
             expect(result.progress).toBe('open');
