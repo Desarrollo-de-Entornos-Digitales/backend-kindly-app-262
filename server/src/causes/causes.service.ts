@@ -1,11 +1,66 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
+import { Cause } from './entities/cause.entity';
+import { Organizer } from '../organizations/entities/organizer.entity';
+import { Category } from '../volunteers/entities/category.entity';
+import { OrganizerNotFoundException, OrganizationNotVerifiedException } from '../common/exceptions';
 
 @Injectable()
 export class CausesService {
-    create(_createCauseDto: CreateCauseDto) {
-        return 'This action adds a new cause';
+    constructor(
+        @InjectRepository(Cause)
+        private readonly causeRepository: Repository<Cause>,
+        @InjectRepository(Organizer)
+        private readonly organizerRepository: Repository<Organizer>,
+        @InjectRepository(Category)
+        private readonly categoryRepository: Repository<Category>,
+    ) {}
+
+    async create(createCauseDto: CreateCauseDto): Promise<Cause> {
+        // 1. Validar fechas: la fecha de fin no puede ser anterior a la de inicio
+        const startDate = new Date(createCauseDto.start_date);
+        const endDate = new Date(createCauseDto.end_date);
+
+        if (endDate < startDate) {
+            throw new BadRequestException('La fecha de finalización no puede ser anterior a la fecha de inicio.');
+        }
+
+        // 2. Validar Organizer
+        const organizer = await this.organizerRepository.findOne({
+            where: { id: createCauseDto.organizer_id },
+        });
+
+        if (!organizer) {
+            throw new OrganizerNotFoundException(createCauseDto.organizer_id);
+        }
+
+        if (organizer.verification_status?.toLowerCase() !== 'verified') {
+            throw new OrganizationNotVerifiedException();
+        }
+
+        // 3. Validar Category
+        const category = await this.categoryRepository.findOne({
+            where: { id: createCauseDto.category_id },
+        });
+
+        if (!category) {
+            throw new NotFoundException(`Category with ID '${createCauseDto.category_id}' not found.`);
+        }
+
+        // 4. Crear y guardar Cause
+        const cause = this.causeRepository.create({
+            ...createCauseDto,
+            organizer,
+            category,
+            is_available: true,
+            progress: 'open',
+            qr_code: `QR-CAUSE-${Date.now()}`,
+        });
+
+        return await this.causeRepository.save(cause);
     }
 
     findAll() {

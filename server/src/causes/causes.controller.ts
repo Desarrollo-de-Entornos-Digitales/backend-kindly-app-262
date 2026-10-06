@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, HttpCode, HttpStatus } from '@nestjs/common';
 import { CausesService } from './causes.service';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
@@ -8,6 +8,7 @@ export class CausesController {
     constructor(private readonly causesService: CausesService) {}
 
     @Post()
+    @HttpCode(HttpStatus.CREATED)
     create(@Body() createCauseDto: CreateCauseDto) {
         return this.causesService.create(createCauseDto);
     }
