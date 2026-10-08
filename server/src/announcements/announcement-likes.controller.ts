@@ -26,4 +26,3 @@ export class AnnouncementLikesController {
         return this.announcementsService.like(announcementId, user);
     }
 }
-

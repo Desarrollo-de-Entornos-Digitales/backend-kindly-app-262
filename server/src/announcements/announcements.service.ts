@@ -29,7 +29,6 @@ export class AnnouncementsService {
         const userRole = typeof user?.role === 'string' ? user.role : user?.role?.name;
 
         if (userRole !== 'admin') {
-            // 1. Find organizer associated with the authenticated user
             const organizer = await this.organizerRepository.findOne({
                 where: { user_id: user?.id },
             });
@@ -38,7 +37,6 @@ export class AnnouncementsService {
                 throw new OrganizerNotFoundException(undefined, 'ORGANIZER_NOT_FOUND');
             }
 
-            // 2. Find cause by causeId
             const cause = await this.causeRepository.findOne({
                 where: { id: causeId },
             });
@@ -47,14 +45,12 @@ export class AnnouncementsService {
                 throw new CauseNotFoundException(causeId);
             }
 
-            // 3. Verify cause ownership
             if (cause.organizer_id !== organizer.id) {
                 throw new ForbiddenException(
                     `Cause with ID '${causeId}' does not belong to the authenticated organizer.`,
                 );
             }
         } else {
-            // For admin, verify cause exists
             const cause = await this.causeRepository.findOne({
                 where: { id: causeId },
             });
@@ -64,7 +60,6 @@ export class AnnouncementsService {
             }
         }
 
-        // 4. Create and persist announcement with default likes = 0
         const announcement = this.announcementRepository.create({
             cause_id: causeId,
             title: createAnnouncementDto.title,
