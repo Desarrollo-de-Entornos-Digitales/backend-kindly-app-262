@@ -1,34 +1,33 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
 import { AnnouncementsService } from './announcements.service';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
-import { UpdateAnnouncementDto } from './dto/update-announcement.dto';
+import { PositiveIntPipe } from '../common/pipes/positive-int.pipe';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { PermissionsGuard } from '../auth/guards/permission.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Permissions } from '../auth/decorators/permission.decorator';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 
-@Controller('announcements')
+@Controller('causes/:causeId/announcements')
 export class AnnouncementsController {
     constructor(private readonly announcementsService: AnnouncementsService) {}
 
     @Post()
-    create(@Body() createAnnouncementDto: CreateAnnouncementDto) {
-        return this.announcementsService.create(createAnnouncementDto);
+    @HttpCode(HttpStatus.CREATED)
+    @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+    @Roles('organizer', 'admin')
+    @Permissions('manage_announcements')
+    create(
+        @Param('causeId', PositiveIntPipe) causeId: number,
+        @CurrentUser() user: any,
+        @Body() createAnnouncementDto: CreateAnnouncementDto,
+    ) {
+        return this.announcementsService.create(causeId, user, createAnnouncementDto);
     }
 
     @Get()
-    findAll() {
-        return this.announcementsService.findAll();
-    }
-
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.announcementsService.findOne(+id);
-    }
-
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateAnnouncementDto: UpdateAnnouncementDto) {
-        return this.announcementsService.update(+id, updateAnnouncementDto);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.announcementsService.remove(+id);
+    findAllByCause(@Param('causeId', PositiveIntPipe) causeId: number) {
+        return this.announcementsService.findAllByCause(causeId);
     }
 }
