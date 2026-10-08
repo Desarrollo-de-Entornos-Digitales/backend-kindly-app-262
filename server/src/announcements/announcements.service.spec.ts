@@ -1,5 +1,11 @@
 import { describe, beforeEach, it, expect, jest } from '@jest/globals';
-import { BadRequestException, ForbiddenException, NotFoundException, ValidationPipe } from '@nestjs/common';
+import {
+    BadRequestException,
+    ConflictException,
+    ForbiddenException,
+    NotFoundException,
+    ValidationPipe,
+} from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -8,8 +14,10 @@ import { Announcement } from './entities/announcement.entity';
 import { Cause } from '../causes/entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Image } from '../media/entities/image.entity';
+import { AnnouncementReaction } from './entities/announcement-reaction.entity';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { CreateImageDto } from '../media/image/dto/create-image.dto';
+import { LikeAnnouncementDto } from './dto/like-announcement.dto';
 import { CauseNotFoundException, OrganizerNotFoundException } from '../common/exceptions';
 
 describe('AnnouncementsService', () => {
@@ -18,6 +26,7 @@ describe('AnnouncementsService', () => {
     let causeRepository: jest.Mocked<Partial<Repository<Cause>>>;
     let organizerRepository: jest.Mocked<Partial<Repository<Organizer>>>;
     let imageRepository: jest.Mocked<Partial<Repository<Image>>>;
+    let announcementReactionRepository: jest.Mocked<Partial<Repository<AnnouncementReaction>>>;
     let validationPipe: ValidationPipe;
 
     const mockOrganizerUser = {
@@ -36,6 +45,12 @@ describe('AnnouncementsService', () => {
         id: 99,
         role: 'organizer',
         permissions: ['manage_announcements'],
+    };
+
+    const mockVolunteerUser = {
+        id: 5,
+        role: 'volunteer',
+        permissions: ['react_announcements'],
     };
 
     const mockOrganizer: Organizer = {
@@ -123,6 +138,12 @@ describe('AnnouncementsService', () => {
             findOne: jest.fn(() => Promise.resolve(mockImage)),
         };
 
+        announcementReactionRepository = {
+            create: jest.fn((dto: any) => ({ ...dto, created_at: new Date() })),
+            save: jest.fn((entity: any) => Promise.resolve({ ...entity })),
+            findOne: jest.fn(() => Promise.resolve(null)),
+        };
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 AnnouncementsService,
@@ -141,6 +162,10 @@ describe('AnnouncementsService', () => {
                 {
                     provide: getRepositoryToken(Image),
                     useValue: imageRepository,
+                },
+                {
+                    provide: getRepositoryToken(AnnouncementReaction),
+                    useValue: announcementReactionRepository,
                 },
             ],
         }).compile();
@@ -456,6 +481,104 @@ describe('AnnouncementsService', () => {
                 validationPipe.transform(forbiddenFieldsPayload, {
                     type: 'body',
                     metatype: CreateImageDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+        });
+    });
+
+    describe('US-2.3.3: Like announcements', () => {
+        it('23. should like an announcement successfully and increment likes count by 1', async () => {
+            const announcementToLike = { ...mockAnnouncement, likes: 5 };
+            (announcementRepository.findOne as any).mockResolvedValue(announcementToLike);
+
+            const result = await service.like(101, mockVolunteerUser);
+
+            expect(announcementRepository.findOne).toHaveBeenCalledWith({ where: { id: 101 } });
+            expect(announcementReactionRepository.findOne).toHaveBeenCalledWith({
+                where: { announcement_id: 101, user_id: mockVolunteerUser.id },
+            });
+            expect(announcementReactionRepository.save).toHaveBeenCalled();
+            expect(announcementRepository.save).toHaveBeenCalledWith(expect.objectContaining({ id: 101, likes: 6 }));
+            expect(result).toEqual({
+                message: 'Announcement liked successfully',
+                announcement_id: 101,
+                likes: 6,
+            });
+        });
+
+        it('24. should reject when the announcement does not exist', async () => {
+            (announcementRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.like(999, mockVolunteerUser)).rejects.toThrow(NotFoundException);
+            expect(announcementReactionRepository.save).not.toHaveBeenCalled();
+            expect(announcementRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('25. should reject when the user has already liked the announcement', async () => {
+            (announcementReactionRepository.findOne as any).mockResolvedValue({
+                announcement_id: 101,
+                user_id: mockVolunteerUser.id,
+                reaction_id: 2,
+            });
+
+            await expect(service.like(101, mockVolunteerUser)).rejects.toThrow(ConflictException);
+            expect(announcementReactionRepository.save).not.toHaveBeenCalled();
+            expect(announcementRepository.save).not.toHaveBeenCalled();
+        });
+
+        it("26. should persist the authenticated user's id", async () => {
+            await service.like(101, mockVolunteerUser);
+
+            expect(announcementReactionRepository.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    user_id: mockVolunteerUser.id,
+                }),
+            );
+        });
+
+        it('27. should use reaction_id 2 for the like', async () => {
+            await service.like(101, mockVolunteerUser);
+
+            expect(announcementReactionRepository.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    reaction_id: 2,
+                }),
+            );
+        });
+
+        it('28. should not increment likes when a duplicate like is attempted', async () => {
+            const announcementBefore = { ...mockAnnouncement, likes: 3 };
+            (announcementRepository.findOne as any).mockResolvedValue(announcementBefore);
+            (announcementReactionRepository.findOne as any).mockResolvedValue({
+                announcement_id: 101,
+                user_id: mockVolunteerUser.id,
+                reaction_id: 2,
+            });
+
+            await expect(service.like(101, mockVolunteerUser)).rejects.toThrow(ConflictException);
+            expect(announcementRepository.save).not.toHaveBeenCalled();
+            expect(announcementBefore.likes).toBe(3);
+        });
+
+        it('29. should handle database unique constraint violation (code 23505) as ConflictException', async () => {
+            (announcementReactionRepository.save as any).mockRejectedValue({ code: '23505' });
+
+            await expect(service.like(101, mockVolunteerUser)).rejects.toThrow(ConflictException);
+            expect(announcementRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('30. should reject LikeAnnouncementDto when client sends any forbidden properties', async () => {
+            const forbiddenPayload = {
+                user_id: 5,
+                reaction_id: 2,
+                announcement_id: 101,
+                likes: 99,
+            };
+
+            await expect(
+                validationPipe.transform(forbiddenPayload, {
+                    type: 'body',
+                    metatype: LikeAnnouncementDto,
                 }),
             ).rejects.toThrow(BadRequestException);
         });

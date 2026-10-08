@@ -1,10 +1,11 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Announcement } from './entities/announcement.entity';
 import { Cause } from '../causes/entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Image } from '../media/entities/image.entity';
+import { AnnouncementReaction } from './entities/announcement-reaction.entity';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { CreateImageDto } from '../media/image/dto/create-image.dto';
 import { CauseNotFoundException, OrganizerNotFoundException } from '../common/exceptions';
@@ -20,6 +21,8 @@ export class AnnouncementsService {
         private readonly organizerRepository: Repository<Organizer>,
         @InjectRepository(Image)
         private readonly imageRepository: Repository<Image>,
+        @InjectRepository(AnnouncementReaction)
+        private readonly announcementReactionRepository: Repository<AnnouncementReaction>,
     ) {}
 
     async create(causeId: number, user: any, createAnnouncementDto: CreateAnnouncementDto): Promise<Announcement> {
@@ -152,5 +155,53 @@ export class AnnouncementsService {
         return await this.imageRepository.find({
             where: { announcement_id: announcementId },
         });
+    }
+
+    async like(
+        announcementId: number,
+        user: any,
+    ): Promise<{ message: string; announcement_id: number; likes: number }> {
+        const announcement = await this.announcementRepository.findOne({
+            where: { id: announcementId },
+        });
+
+        if (!announcement) {
+            throw new NotFoundException(`Announcement with ID '${announcementId}' not found.`);
+        }
+
+        const existingReaction = await this.announcementReactionRepository.findOne({
+            where: {
+                announcement_id: announcementId,
+                user_id: user?.id,
+            },
+        });
+
+        if (existingReaction) {
+            throw new ConflictException(`User has already liked announcement with ID '${announcementId}'.`);
+        }
+
+        const announcementReaction = this.announcementReactionRepository.create({
+            announcement_id: announcementId,
+            user_id: user?.id,
+            reaction_id: 2,
+        });
+
+        try {
+            await this.announcementReactionRepository.save(announcementReaction);
+        } catch (error: any) {
+            if (error?.code === '23505') {
+                throw new ConflictException(`User has already liked announcement with ID '${announcementId}'.`);
+            }
+            throw error;
+        }
+
+        announcement.likes = (announcement.likes || 0) + 1;
+        await this.announcementRepository.save(announcement);
+
+        return {
+            message: 'Announcement liked successfully',
+            announcement_id: announcement.id,
+            likes: announcement.likes,
+        };
     }
 }
