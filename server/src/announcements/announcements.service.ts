@@ -4,7 +4,9 @@ import { Repository } from 'typeorm';
 import { Announcement } from './entities/announcement.entity';
 import { Cause } from '../causes/entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
+import { Image } from '../media/entities/image.entity';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
+import { CreateImageDto } from '../media/image/dto/create-image.dto';
 import { CauseNotFoundException, OrganizerNotFoundException } from '../common/exceptions';
 
 @Injectable()
@@ -16,6 +18,8 @@ export class AnnouncementsService {
         private readonly causeRepository: Repository<Cause>,
         @InjectRepository(Organizer)
         private readonly organizerRepository: Repository<Organizer>,
+        @InjectRepository(Image)
+        private readonly imageRepository: Repository<Image>,
     ) {}
 
     async create(causeId: number, user: any, createAnnouncementDto: CreateAnnouncementDto): Promise<Announcement> {
@@ -94,5 +98,59 @@ export class AnnouncementsService {
         }
 
         return announcement;
+    }
+
+    async addImage(announcementId: number, user: any, createImageDto: CreateImageDto): Promise<Image> {
+        const userRole = typeof user?.role === 'string' ? user.role : user?.role?.name;
+
+        let organizer: Organizer | null = null;
+        if (userRole !== 'admin') {
+            organizer = await this.organizerRepository.findOne({
+                where: { user_id: user?.id },
+            });
+
+            if (!organizer) {
+                throw new OrganizerNotFoundException(undefined, 'ORGANIZER_NOT_FOUND');
+            }
+        }
+
+        const announcement = await this.announcementRepository.findOne({
+            where: { id: announcementId },
+            relations: ['cause'],
+        });
+
+        if (!announcement) {
+            throw new NotFoundException(`Announcement with ID '${announcementId}' not found.`);
+        }
+
+        if (userRole !== 'admin') {
+            if (!announcement.cause || announcement.cause.organizer_id !== organizer!.id) {
+                throw new ForbiddenException(
+                    `Announcement with ID '${announcementId}' does not belong to the authenticated organizer.`,
+                );
+            }
+        }
+
+        const image = this.imageRepository.create({
+            image_url: createImageDto.image_url,
+            announcement_id: announcementId,
+            cause_id: null as any,
+        });
+
+        return await this.imageRepository.save(image);
+    }
+
+    async findImagesByAnnouncement(announcementId: number): Promise<Image[]> {
+        const announcement = await this.announcementRepository.findOne({
+            where: { id: announcementId },
+        });
+
+        if (!announcement) {
+            throw new NotFoundException(`Announcement with ID '${announcementId}' not found.`);
+        }
+
+        return await this.imageRepository.find({
+            where: { announcement_id: announcementId },
+        });
     }
 }

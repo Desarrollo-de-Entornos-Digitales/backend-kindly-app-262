@@ -1,5 +1,5 @@
 import { describe, beforeEach, it, expect, jest } from '@jest/globals';
-import { BadRequestException, ForbiddenException, ValidationPipe } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -7,14 +7,17 @@ import { AnnouncementsService } from './announcements.service';
 import { Announcement } from './entities/announcement.entity';
 import { Cause } from '../causes/entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
+import { Image } from '../media/entities/image.entity';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
+import { CreateImageDto } from '../media/image/dto/create-image.dto';
 import { CauseNotFoundException, OrganizerNotFoundException } from '../common/exceptions';
 
-describe('AnnouncementsService (US-2.3.1)', () => {
+describe('AnnouncementsService', () => {
     let service: AnnouncementsService;
     let announcementRepository: jest.Mocked<Partial<Repository<Announcement>>>;
     let causeRepository: jest.Mocked<Partial<Repository<Cause>>>;
     let organizerRepository: jest.Mocked<Partial<Repository<Organizer>>>;
+    let imageRepository: jest.Mocked<Partial<Repository<Image>>>;
     let validationPipe: ValidationPipe;
 
     const mockOrganizerUser = {
@@ -88,6 +91,15 @@ describe('AnnouncementsService (US-2.3.1)', () => {
         announcementReaction: [],
     };
 
+    const mockImage: Image = {
+        id: 501,
+        image_url: 'https://images.kindly.org/announcements/foto.jpg',
+        announcement_id: 101,
+        cause_id: null as any,
+        cause: null as any,
+        announcement: mockAnnouncement,
+    };
+
     beforeEach(async () => {
         announcementRepository = {
             create: jest.fn((dto: any) => ({ ...dto, id: 101, created_at: new Date() })),
@@ -104,6 +116,13 @@ describe('AnnouncementsService (US-2.3.1)', () => {
             findOne: jest.fn(() => Promise.resolve(mockOrganizer)),
         };
 
+        imageRepository = {
+            create: jest.fn((dto: any) => ({ ...dto, id: 501 })),
+            save: jest.fn((entity: any) => Promise.resolve({ ...entity, id: entity.id || 501 })),
+            find: jest.fn(() => Promise.resolve([mockImage])),
+            findOne: jest.fn(() => Promise.resolve(mockImage)),
+        };
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 AnnouncementsService,
@@ -118,6 +137,10 @@ describe('AnnouncementsService (US-2.3.1)', () => {
                 {
                     provide: getRepositoryToken(Organizer),
                     useValue: organizerRepository,
+                },
+                {
+                    provide: getRepositoryToken(Image),
+                    useValue: imageRepository,
                 },
             ],
         }).compile();
@@ -288,6 +311,153 @@ describe('AnnouncementsService (US-2.3.1)', () => {
 
             await expect(service.findAllByCause(999)).rejects.toThrow(CauseNotFoundException);
             expect(announcementRepository.find).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('US-2.3.2: Add images to announcements', () => {
+        const validImageDto: CreateImageDto = {
+            image_url: 'https://images.kindly.org/announcements/mapa_punto_encuentro.png',
+        };
+
+        it('13. should attach an image successfully when organizer owns the announcement cause', async () => {
+            const result = await service.addImage(101, mockOrganizerUser, validImageDto);
+
+            expect(organizerRepository.findOne).toHaveBeenCalledWith({
+                where: { user_id: mockOrganizerUser.id },
+            });
+            expect(announcementRepository.findOne).toHaveBeenCalledWith({
+                where: { id: 101 },
+                relations: ['cause'],
+            });
+            expect(imageRepository.create).toHaveBeenCalledWith({
+                image_url: validImageDto.image_url,
+                announcement_id: 101,
+                cause_id: null,
+            });
+            expect(imageRepository.save).toHaveBeenCalled();
+            expect(result.id).toBe(501);
+            expect(result.announcement_id).toBe(101);
+            expect(result.cause_id).toBeNull();
+        });
+
+        it('14. should allow admin to attach an image to any announcement without ownership check', async () => {
+            const result = await service.addImage(101, mockAdminUser, validImageDto);
+
+            expect(organizerRepository.findOne).not.toHaveBeenCalled();
+            expect(announcementRepository.findOne).toHaveBeenCalledWith({
+                where: { id: 101 },
+                relations: ['cause'],
+            });
+            expect(imageRepository.save).toHaveBeenCalled();
+            expect(result.announcement_id).toBe(101);
+        });
+
+        it('15. should reject when announcement does not exist', async () => {
+            (announcementRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.addImage(999, mockOrganizerUser, validImageDto)).rejects.toThrow(NotFoundException);
+            expect(imageRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('16. should reject when organizer does not exist', async () => {
+            (organizerRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.addImage(101, { id: 888, role: 'organizer' }, validImageDto)).rejects.toThrow(
+                OrganizerNotFoundException,
+            );
+            expect(imageRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('17. should reject when organizer does not own the cause associated with the announcement', async () => {
+            const otherOrganizer: Organizer = {
+                ...mockOrganizer,
+                id: 77,
+                user_id: mockOtherOrganizerUser.id,
+            };
+            (organizerRepository.findOne as any).mockResolvedValue(otherOrganizer);
+
+            await expect(service.addImage(101, mockOtherOrganizerUser, validImageDto)).rejects.toThrow(
+                ForbiddenException,
+            );
+            expect(imageRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('18. should assign announcement_id from route and ensure cause_id is null', async () => {
+            const customAnnouncementId = 205;
+            (announcementRepository.findOne as any).mockResolvedValue({
+                ...mockAnnouncement,
+                id: customAnnouncementId,
+            });
+
+            await service.addImage(customAnnouncementId, mockOrganizerUser, validImageDto);
+
+            expect(imageRepository.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    announcement_id: customAnnouncementId,
+                    cause_id: null,
+                    image_url: validImageDto.image_url,
+                }),
+            );
+        });
+
+        it('19. should list announcement images successfully', async () => {
+            const images = await service.findImagesByAnnouncement(101);
+
+            expect(announcementRepository.findOne).toHaveBeenCalledWith({
+                where: { id: 101 },
+            });
+            expect(imageRepository.find).toHaveBeenCalledWith({
+                where: { announcement_id: 101 },
+            });
+            expect(images).toHaveLength(1);
+            expect(images[0].announcement_id).toBe(101);
+        });
+
+        it('20. should reject listing images when announcement does not exist', async () => {
+            (announcementRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.findImagesByAnnouncement(999)).rejects.toThrow(NotFoundException);
+            expect(imageRepository.find).not.toHaveBeenCalled();
+        });
+
+        it('21. should reject CreateImageDto when image_url is empty or invalid URL', async () => {
+            const invalidUrlPayload = {
+                image_url: 'not-a-valid-url',
+            };
+
+            await expect(
+                validationPipe.transform(invalidUrlPayload, {
+                    type: 'body',
+                    metatype: CreateImageDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+
+            const emptyPayload = {
+                image_url: '',
+            };
+
+            await expect(
+                validationPipe.transform(emptyPayload, {
+                    type: 'body',
+                    metatype: CreateImageDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('22. should reject CreateImageDto when client sends forbidden properties', async () => {
+            const forbiddenFieldsPayload = {
+                image_url: 'https://images.kindly.org/announcements/foto.jpg',
+                announcement_id: 99,
+                cause_id: 55,
+                id: 10,
+            };
+
+            await expect(
+                validationPipe.transform(forbiddenFieldsPayload, {
+                    type: 'body',
+                    metatype: CreateImageDto,
+                }),
+            ).rejects.toThrow(BadRequestException);
         });
     });
 });
