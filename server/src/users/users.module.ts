@@ -12,6 +12,7 @@ import { UserModule } from './user/user.module';
 import { RoleModule } from './role/role.module';
 import { PermissionModule } from './permission/permission.module';
 import { RolePermissionModule } from './role-permission/role-permission.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
     imports: [
@@ -20,9 +21,16 @@ import { RolePermissionModule } from './role-permission/role-permission.module';
         RoleModule,
         PermissionModule,
         RolePermissionModule,
+        AuthModule,
     ],
     controllers: [UsersController],
     providers: [UsersService],
-    exports: [UsersService, UserModule, RoleModule, PermissionModule, RolePermissionModule],
+    exports: [
+        UsersService,
+        UserModule,
+        RoleModule,
+        PermissionModule,
+        RolePermissionModule,
+    ],
 })
 export class UsersModule {}

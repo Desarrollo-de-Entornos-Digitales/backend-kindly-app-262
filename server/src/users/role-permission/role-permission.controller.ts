@@ -1,14 +1,4 @@
-import {
-    Controller,
-    Get,
-    Post,
-    Body,
-    Param,
-    Delete,
-    ParseIntPipe,
-    HttpCode,
-    HttpStatus,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { RolePermissionService } from './role-permission.service';
 import { CreateRolePermissionDto } from './dto/create-role-permission.dto';
 

@@ -8,11 +8,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { User } from '../users/entities/user.entity';
-import {
-    InvalidCredentialsException,
-    UserAlreadyExistsException,
-    UserInactiveException,
-} from '../common/exceptions';
+import { InvalidCredentialsException, UserAlreadyExistsException, UserInactiveException } from '../common/exceptions';
 
 @Injectable()
 export class AuthService {
@@ -69,10 +65,7 @@ export class AuthService {
             throw new BadRequestException('Role must be either volunteer or organizer');
         }
 
-        const existingUser = await this.userService.findByEmailOrUsername(
-            registerDto.email,
-            registerDto.username,
-        );
+        const existingUser = await this.userService.findByEmailOrUsername(registerDto.email, registerDto.username);
         if (existingUser) {
             throw new UserAlreadyExistsException('A user with this email or username already exists');
         }

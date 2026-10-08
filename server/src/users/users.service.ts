@@ -56,7 +56,7 @@ export class UsersService {
         });
 
         // Strip sensitive password column from response
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
         const sanitizedUsers = users.map(({ password: _, ...user }) => user);
 
         return {
@@ -88,15 +88,11 @@ export class UsersService {
             throw new UserNotFoundException(id);
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password: _, ...userWithoutPassword } = user;
         return userWithoutPassword;
     }
 
-    async updateStatus(
-        id: number,
-        updateUserStatusDto: UpdateUserStatusDto,
-    ): Promise<Omit<User, 'password'>> {
+    async updateStatus(id: number, updateUserStatusDto: UpdateUserStatusDto): Promise<Omit<User, 'password'>> {
         const user = await this.userRepository.findOne({
             where: { id },
             relations: {
@@ -111,15 +107,11 @@ export class UsersService {
         user.is_active = updateUserStatusDto.is_active;
         const savedUser = await this.userRepository.save(user);
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password: _, ...userWithoutPassword } = savedUser;
         return userWithoutPassword;
     }
 
-    async assignRole(
-        id: number,
-        assignRoleDto: AssignRoleDto,
-    ): Promise<Omit<User, 'password'>> {
+    async assignRole(id: number, assignRoleDto: AssignRoleDto): Promise<Omit<User, 'password'>> {
         const user = await this.userRepository.findOne({
             where: { id },
         });
@@ -137,7 +129,6 @@ export class UsersService {
         user.role_id = role.id;
         const savedUser = await this.userRepository.save(user);
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { password: _, ...userWithoutPassword } = savedUser;
         return userWithoutPassword;
     }

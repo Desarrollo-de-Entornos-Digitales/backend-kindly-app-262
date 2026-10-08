@@ -1,10 +1,24 @@
-import { Controller, Get, Patch, Param, Body, Query, ParseIntPipe } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Patch,
+    Param,
+    Body,
+    Query,
+    ParseIntPipe,
+    UseGuards,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { QueryUsersDto } from './dto/query-users.dto';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 
 @Controller('users')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
@@ -19,12 +33,18 @@ export class UsersController {
     }
 
     @Patch(':id/status')
-    async updateStatus(@Param('id', ParseIntPipe) id: number, @Body() updateUserStatusDto: UpdateUserStatusDto) {
+    async updateStatus(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() updateUserStatusDto: UpdateUserStatusDto,
+    ) {
         return await this.usersService.updateStatus(id, updateUserStatusDto);
     }
 
     @Patch(':id/role')
-    async assignRole(@Param('id', ParseIntPipe) id: number, @Body() assignRoleDto: AssignRoleDto) {
+    async assignRole(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() assignRoleDto: AssignRoleDto,
+    ) {
         return await this.usersService.assignRole(id, assignRoleDto);
     }
 }
