@@ -5,13 +5,13 @@ import { User } from '../../users/entities/user.entity';
 
 @Entity('announcement_reactions')
 export class AnnouncementReaction {
-    @PrimaryColumn('reaction_id')
+    @PrimaryColumn({ name: 'reaction_id' })
     reaction_id!: number;
 
-    @PrimaryColumn('announcement_id')
+    @PrimaryColumn({ name: 'announcement_id' })
     announcement_id!: number;
 
-    @PrimaryColumn('user_id')
+    @PrimaryColumn({ name: 'user_id' })
     user_id!: number;
 
     @Column({

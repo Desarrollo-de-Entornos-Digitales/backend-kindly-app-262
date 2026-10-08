@@ -30,6 +30,9 @@ export class User {
     @Column({ name: 'is_active', default: true })
     is_active!: boolean;
 
+    @Column({ name: 'profile_picture', type: 'varchar', nullable: true, default: null })
+    profile_picture?: string | null;
+
     @Column({
         name: 'created_at',
         type: 'timestamp',

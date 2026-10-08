@@ -1,26 +1,49 @@
 import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { Role } from '../entities/role.entity';
 
 @Injectable()
 export class RoleService {
-    create(_createRoleDto: CreateRoleDto) {
-        return 'This action adds a new role';
+    constructor(
+        @InjectRepository(Role)
+        private readonly roleRepository: Repository<Role>,
+    ) {}
+
+    async findOne(id: number): Promise<Role | null> {
+        return await this.roleRepository.findOne({
+            where: { id },
+            relations: ['rolePermissions', 'rolePermissions.permission'],
+        });
     }
 
-    findAll() {
-        return `This action returns all role`;
+    async findAll(): Promise<Role[]> {
+        return await this.roleRepository.find({
+            relations: ['rolePermissions', 'rolePermissions.permission'],
+        });
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} role`;
+    async findByName(name: string): Promise<Role | null> {
+        return await this.roleRepository.findOne({
+            where: { name },
+            relations: ['rolePermissions', 'rolePermissions.permission'],
+        });
     }
 
-    update(id: number, _updateRoleDto: UpdateRoleDto) {
-        return `This action updates a #${id} role`;
+    async create(createRoleDto: CreateRoleDto): Promise<Role> {
+        const newRole = this.roleRepository.create(createRoleDto);
+        return await this.roleRepository.save(newRole);
     }
 
-    remove(id: number) {
-        return `This action removes a #${id} role`;
+    async update(id: number, updateRoleDto: UpdateRoleDto): Promise<Role | null> {
+        await this.roleRepository.update(id, updateRoleDto);
+        return await this.findOne(id);
+    }
+
+    async remove(id: number): Promise<void> {
+        await this.roleRepository.delete(id);
     }
 }

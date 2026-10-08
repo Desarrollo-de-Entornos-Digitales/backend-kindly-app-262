@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    Delete,
+    ParseIntPipe,
+    NotFoundException,
+    HttpCode,
+    HttpStatus,
+} from '@nestjs/common';
 import { RoleService } from './role.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
@@ -8,27 +20,50 @@ export class RoleController {
     constructor(private readonly roleService: RoleService) {}
 
     @Post()
-    create(@Body() createRoleDto: CreateRoleDto) {
-        return this.roleService.create(createRoleDto);
+    @HttpCode(HttpStatus.CREATED)
+    async create(@Body() createRoleDto: CreateRoleDto) {
+        return await this.roleService.create(createRoleDto);
     }
 
     @Get()
-    findAll() {
-        return this.roleService.findAll();
+    async findAll() {
+        return await this.roleService.findAll();
+    }
+
+    @Get('name/:name')
+    async findByName(@Param('name') name: string) {
+        const role = await this.roleService.findByName(name);
+        if (!role) {
+            throw new NotFoundException(`Role with name '${name}' not found`);
+        }
+        return role;
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.roleService.findOne(+id);
+    async findOne(@Param('id', ParseIntPipe) id: number) {
+        const role = await this.roleService.findOne(id);
+        if (!role) {
+            throw new NotFoundException(`Role with ID ${id} not found`);
+        }
+        return role;
     }
 
     @Patch(':id')
-    update(@Param('id') id: string, @Body() updateRoleDto: UpdateRoleDto) {
-        return this.roleService.update(+id, updateRoleDto);
+    async update(@Param('id', ParseIntPipe) id: number, @Body() updateRoleDto: UpdateRoleDto) {
+        const updatedRole = await this.roleService.update(id, updateRoleDto);
+        if (!updatedRole) {
+            throw new NotFoundException(`Role with ID ${id} not found`);
+        }
+        return updatedRole;
     }
 
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.roleService.remove(+id);
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async remove(@Param('id', ParseIntPipe) id: number) {
+        const role = await this.roleService.findOne(id);
+        if (!role) {
+            throw new NotFoundException(`Role with ID ${id} not found`);
+        }
+        await this.roleService.remove(id);
     }
 }
