@@ -23,7 +23,7 @@ export class CreateUserDto {
 
     @IsString({ message: 'Password must be a string' })
     @MinLength(6, { message: 'Password must be at least 6 characters long' })
-    password!: string;
+    passwordHash!: string;
 
     @IsInt({ message: 'Role ID must be an integer' })
     @IsNotEmpty({ message: 'Role ID is required' })

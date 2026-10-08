@@ -1,9 +1,56 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { UserService } from '../users/user/user.service';
+import { LoginDto } from './dto/login.dto';
+import * as bcrypt from 'bcrypt';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { use } from 'passport';
+import { access } from 'fs';
 
 @Injectable()
 export class AuthService {
+    constructor(
+        private readonly jtwService: JwtService,
+        private readonly userService: UserService,
+    ) {}
+
+    async validateUser(email: string, password: string) {
+        const user = await this.userService.findByEmail(email);
+        if (!user) {
+            throw new BadRequestException('The user was not found');
+        }
+
+        const MatchedUser = await bcrypt.compare(password, user.passwordHash);
+        if (!MatchedUser) {
+            throw new BadRequestException('Invalid user credentials')
+        }
+
+        return user;
+    }
+
+
+    async Login(loginDto: LoginDto) {
+        const user = await this.validateUser(loginDto.email, loginDto.password);
+
+        const payload: JwtPayload = {
+            sub: user.id,
+            email: user.email,
+            permissions,
+        };
+
+        return {
+            message: ''
+            access_token: this.jtwService.sign(payload),
+            token_type: 'Bearer',
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role.name,
+            },
+        };
+    }
+
+
     create(_createAuthDto: CreateAuthDto) {
         return 'This action adds a new auth';
     }

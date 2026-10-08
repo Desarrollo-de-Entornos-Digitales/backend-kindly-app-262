@@ -1,4 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    Delete,
+    ParseIntPipe,
+    NotFoundException,
+    HttpCode,
+    HttpStatus,
+} from '@nestjs/common';
 import { PermissionService } from './permission.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
@@ -8,27 +20,50 @@ export class PermissionController {
     constructor(private readonly permissionService: PermissionService) {}
 
     @Post()
-    create(@Body() createPermissionDto: CreatePermissionDto) {
-        return this.permissionService.create(createPermissionDto);
+    @HttpCode(HttpStatus.CREATED)
+    async create(@Body() createPermissionDto: CreatePermissionDto) {
+        return await this.permissionService.create(createPermissionDto);
     }
 
     @Get()
-    findAll() {
-        return this.permissionService.findAll();
+    async findAll() {
+        return await this.permissionService.findAll();
+    }
+
+    @Get('name/:name')
+    async findByName(@Param('name') name: string) {
+        const permission = await this.permissionService.findByName(name);
+        if (!permission) {
+            throw new NotFoundException(`Permission with name '${name}' not found`);
+        }
+        return permission;
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.permissionService.findOne(+id);
+    async findOne(@Param('id', ParseIntPipe) id: number) {
+        const permission = await this.permissionService.findOne(id);
+        if (!permission) {
+            throw new NotFoundException(`Permission with ID ${id} not found`);
+        }
+        return permission;
     }
 
     @Patch(':id')
-    update(@Param('id') id: string, @Body() updatePermissionDto: UpdatePermissionDto) {
-        return this.permissionService.update(+id, updatePermissionDto);
+    async update(@Param('id', ParseIntPipe) id: number, @Body() updatePermissionDto: UpdatePermissionDto) {
+        const updatedPermission = await this.permissionService.update(id, updatePermissionDto);
+        if (!updatedPermission) {
+            throw new NotFoundException(`Permission with ID ${id} not found`);
+        }
+        return updatedPermission;
     }
 
     @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.permissionService.remove(+id);
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async remove(@Param('id', ParseIntPipe) id: number) {
+        const permission = await this.permissionService.findOne(id);
+        if (!permission) {
+            throw new NotFoundException(`Permission with ID ${id} not found`);
+        }
+        await this.permissionService.remove(id);
     }
 }
