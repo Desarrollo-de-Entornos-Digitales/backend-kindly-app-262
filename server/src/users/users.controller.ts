@@ -1,34 +1,30 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Patch, Param, Body, Query, ParseIntPipe } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { QueryUsersDto } from './dto/query-users.dto';
+import { UpdateUserStatusDto } from './dto/update-user-status.dto';
+import { AssignRoleDto } from './dto/assign-role.dto';
 
 @Controller('users')
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
-    @Post()
-    create(@Body() createUserDto: CreateUserDto) {
-        return this.usersService.create(createUserDto);
-    }
-
     @Get()
-    findAll() {
-        return this.usersService.findAll();
+    async findAll(@Query() query: QueryUsersDto) {
+        return await this.usersService.findAll(query);
     }
 
     @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.usersService.findOne(+id);
+    async findOne(@Param('id', ParseIntPipe) id: number) {
+        return await this.usersService.findOne(id);
     }
 
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-        return this.usersService.update(+id, updateUserDto);
+    @Patch(':id/status')
+    async updateStatus(@Param('id', ParseIntPipe) id: number, @Body() updateUserStatusDto: UpdateUserStatusDto) {
+        return await this.usersService.updateStatus(id, updateUserStatusDto);
     }
 
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.usersService.remove(+id);
+    @Patch(':id/role')
+    async assignRole(@Param('id', ParseIntPipe) id: number, @Body() assignRoleDto: AssignRoleDto) {
+        return await this.usersService.assignRole(id, assignRoleDto);
     }
 }

@@ -27,7 +27,7 @@ export class CreateUserDto {
 
     @IsInt({ message: 'Role ID must be an integer' })
     @IsNotEmpty({ message: 'Role ID is required' })
-    role_id!: number;
+    roleId!: number;
 
     @IsOptional()
     is_active?: boolean;

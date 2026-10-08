@@ -1,73 +1,115 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UserService } from '../users/user/user.service';
-import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
+
+import { UserService } from '../users/user/user.service';
+import { RoleService } from '../users/role/role.service';
+import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
-import { use } from 'passport';
-import { access } from 'fs';
+import { User } from '../users/entities/user.entity';
+import {
+    InvalidCredentialsException,
+    UserAlreadyExistsException,
+    UserInactiveException,
+} from '../common/exceptions';
 
 @Injectable()
 export class AuthService {
     constructor(
-        private readonly jtwService: JwtService,
+        private readonly jwtService: JwtService,
         private readonly userService: UserService,
+        private readonly roleService: RoleService,
     ) {}
 
-    async validateUser(email: string, password: string) {
+    async validateUser(email: string, password: string): Promise<User> {
         const user = await this.userService.findByEmail(email);
         if (!user) {
-            throw new BadRequestException('The user was not found');
+            throw new InvalidCredentialsException('Invalid user credentials');
         }
 
-        const MatchedUser = await bcrypt.compare(password, user.passwordHash);
-        if (!MatchedUser) {
-            throw new BadRequestException('Invalid user credentials')
+        const isPasswordMatched = await bcrypt.compare(password, user.password);
+        if (!isPasswordMatched) {
+            throw new InvalidCredentialsException('Invalid user credentials');
+        }
+
+        if (!user.is_active) {
+            throw new UserInactiveException('User account is deactivated. Please contact support.');
         }
 
         return user;
     }
 
-
-    async Login(loginDto: LoginDto) {
+    async login(loginDto: LoginDto) {
         const user = await this.validateUser(loginDto.email, loginDto.password);
 
         const payload: JwtPayload = {
             sub: user.id,
             email: user.email,
-            permissions,
+            username: user.username,
+            role: user.role?.name ?? 'volunteer',
         };
 
         return {
-            message: ''
-            access_token: this.jtwService.sign(payload),
+            message: 'User logged in successfully',
+            access_token: this.jwtService.sign(payload),
             token_type: 'Bearer',
             user: {
                 id: user.id,
+                name: user.name,
                 email: user.email,
-                role: user.role.name,
+                username: user.username,
+                role: user.role?.name,
             },
         };
     }
 
+    async register(registerDto: RegisterDto) {
+        if (registerDto.role !== 'volunteer' && registerDto.role !== 'organizer') {
+            throw new BadRequestException('Role must be either volunteer or organizer');
+        }
 
-    create(_createAuthDto: CreateAuthDto) {
-        return 'This action adds a new auth';
-    }
+        const existingUser = await this.userService.findByEmailOrUsername(
+            registerDto.email,
+            registerDto.username,
+        );
+        if (existingUser) {
+            throw new UserAlreadyExistsException('A user with this email or username already exists');
+        }
 
-    findAll() {
-        return `This action returns all auth`;
-    }
+        const role = await this.roleService.findByName(registerDto.role);
+        if (!role) {
+            throw new BadRequestException(`Role ${registerDto.role} not found`);
+        }
 
-    findOne(id: number) {
-        return `This action returns a #${id} auth`;
-    }
+        const createdUser = await this.userService.create({
+            name: registerDto.name,
+            username: registerDto.username,
+            email: registerDto.email,
+            contact: registerDto.contact,
+            passwordHash: registerDto.password,
+            roleId: role.id,
+            is_active: true,
+        });
 
-    update(id: number, _updateAuthDto: UpdateAuthDto) {
-        return `This action updates a #${id} auth`;
-    }
+        const payload: JwtPayload = {
+            sub: createdUser.id,
+            email: createdUser.email,
+            username: createdUser.username,
+            role: role.name,
+        };
 
-    remove(id: number) {
-        return `This action removes a #${id} auth`;
+        return {
+            message: 'User registered successfully',
+            access_token: this.jwtService.sign(payload),
+            token_type: 'Bearer',
+            user: {
+                id: createdUser.id,
+                name: createdUser.name,
+                email: createdUser.email,
+                username: createdUser.username,
+                role: role.name,
+            },
+        };
     }
 }
