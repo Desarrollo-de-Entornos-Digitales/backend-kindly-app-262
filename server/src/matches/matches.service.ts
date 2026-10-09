@@ -4,8 +4,10 @@ import { Raw, Repository } from 'typeorm';
 import { Cause } from '../causes/entities/cause.entity';
 import { Volunteer } from '../volunteers/entities/volunteer.entity';
 import { Submission } from '../participations/entities/submission.entity';
+import { SubmissionService } from '../participations/submission/submission.service';
 import { CauseCardDto } from './dto/cause-card.dto';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
+import { CreateMatchDto } from './dto/create-match.dto';
 
 @Injectable()
 export class MatchesService {
@@ -16,6 +18,7 @@ export class MatchesService {
         private readonly volunteerRepository: Repository<Volunteer>,
         @InjectRepository(Submission)
         private readonly submissionRepository: Repository<Submission>,
+        private readonly submissionService: SubmissionService,
     ) {}
 
     async getDeck(user: any, queryDto?: GetDeckQueryDto): Promise<CauseCardDto[]> {
@@ -105,5 +108,17 @@ export class MatchesService {
         }
 
         return eligibleCards.slice(startIndex, startIndex + limit);
+    }
+
+    async match(userId: number, createMatchDto: CreateMatchDto): Promise<Submission> {
+        const justification =
+            createMatchDto.justification && createMatchDto.justification.trim().length > 0
+                ? createMatchDto.justification
+                : 'Postulación generada automáticamente mediante Match en Kindly.';
+
+        return this.submissionService.create(userId, {
+            cause_id: createMatchDto.cause_id,
+            justification,
+        });
     }
 }

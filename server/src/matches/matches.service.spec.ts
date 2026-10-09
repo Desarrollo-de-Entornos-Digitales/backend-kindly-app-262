@@ -7,13 +7,23 @@ import { MatchesService } from './matches.service';
 import { Cause } from '../causes/entities/cause.entity';
 import { Volunteer } from '../volunteers/entities/volunteer.entity';
 import { Submission } from '../participations/entities/submission.entity';
+import { SubmissionService } from '../participations/submission/submission.service';
+import { SubmissionStatus } from '../participations/submission/submission-status.enum';
+import {
+    CauseNotAvailableException,
+    CauseNotFoundException,
+    CauseQuotaFullException,
+    DuplicateSubmissionException,
+} from '../common/exceptions';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
+import { CreateMatchDto } from './dto/create-match.dto';
 
 describe('MatchesService', () => {
     let service: MatchesService;
     let causeRepository: jest.Mocked<Partial<Repository<Cause>>>;
     let volunteerRepository: jest.Mocked<Partial<Repository<Volunteer>>>;
     let submissionRepository: jest.Mocked<Partial<Repository<Submission>>>;
+    let submissionService: jest.Mocked<Partial<SubmissionService>>;
     let mockQueryBuilder: any;
     let validationPipe: ValidationPipe;
 
@@ -130,6 +140,17 @@ describe('MatchesService', () => {
         attendances: [],
     };
 
+    const mockCreatedSubmission: Submission = {
+        id: 42,
+        volunteer_id: 10,
+        cause_id: 101,
+        status: SubmissionStatus.PENDING,
+        created_at: new Date('2026-10-09T10:00:00Z'),
+        justification: 'Me apasiona la reforestación y quiero aportar mi tiempo.',
+        volunteer: mockVolunteer,
+        cause: mockCause1,
+    };
+
     beforeEach(async () => {
         mockQueryBuilder = {
             leftJoinAndSelect: jest.fn().mockReturnThis(),
@@ -152,6 +173,10 @@ describe('MatchesService', () => {
             count: jest.fn(() => Promise.resolve(0)),
         };
 
+        submissionService = {
+            create: jest.fn(() => Promise.resolve(mockCreatedSubmission)),
+        };
+
         const module: TestingModule = await Test.createTestingModule({
             providers: [
                 MatchesService,
@@ -166,6 +191,10 @@ describe('MatchesService', () => {
                 {
                     provide: getRepositoryToken(Submission),
                     useValue: submissionRepository,
+                },
+                {
+                    provide: SubmissionService,
+                    useValue: submissionService,
                 },
             ],
         }).compile();
@@ -340,6 +369,117 @@ describe('MatchesService', () => {
 
             expect(cards[0].organization.is_verified).toBe(false);
             expect(cards[0].organization.verification_status).toBe('pending');
+        });
+    });
+
+    describe('US-3.1.3: Match with a cause', () => {
+        it('12. should successfully match with a cause when explicit justification is provided', async () => {
+            const result = await service.match(5, {
+                cause_id: 101,
+                justification: 'Me apasiona la reforestación y quiero aportar mi tiempo.',
+            });
+
+            expect(submissionService.create).toHaveBeenCalledWith(5, {
+                cause_id: 101,
+                justification: 'Me apasiona la reforestación y quiero aportar mi tiempo.',
+            });
+            expect(result).toEqual(mockCreatedSubmission);
+        });
+
+        it('13. should use default justification when justification is omitted or empty', async () => {
+            await service.match(5, { cause_id: 101 });
+
+            expect(submissionService.create).toHaveBeenCalledWith(5, {
+                cause_id: 101,
+                justification: 'Postulación generada automáticamente mediante Match en Kindly.',
+            });
+
+            await service.match(5, { cause_id: 101, justification: '   ' });
+
+            expect(submissionService.create).toHaveBeenCalledWith(5, {
+                cause_id: 101,
+                justification: 'Postulación generada automáticamente mediante Match en Kindly.',
+            });
+        });
+
+        it('14. should correctly delegate to SubmissionService with authenticated userId and causeId', async () => {
+            await service.match(99, { cause_id: 202 });
+
+            expect(submissionService.create).toHaveBeenCalledTimes(1);
+            expect(submissionService.create).toHaveBeenCalledWith(99, {
+                cause_id: 202,
+                justification: 'Postulación generada automáticamente mediante Match en Kindly.',
+            });
+        });
+
+        it('15. should propagate CauseNotFoundException when the cause does not exist', async () => {
+            (submissionService.create as any).mockRejectedValue(new CauseNotFoundException(999));
+
+            await expect(service.match(5, { cause_id: 999 })).rejects.toThrow(CauseNotFoundException);
+        });
+
+        it('16. should propagate CauseNotAvailableException when cause is not available or has ended', async () => {
+            (submissionService.create as any).mockRejectedValue(new CauseNotAvailableException());
+
+            await expect(service.match(5, { cause_id: 101 })).rejects.toThrow(CauseNotAvailableException);
+        });
+
+        it('17. should propagate DuplicateSubmissionException when volunteer already applied to the cause', async () => {
+            (submissionService.create as any).mockRejectedValue(new DuplicateSubmissionException());
+
+            await expect(service.match(5, { cause_id: 101 })).rejects.toThrow(DuplicateSubmissionException);
+        });
+
+        it('18. should propagate CauseQuotaFullException when cause capacity is full', async () => {
+            (submissionService.create as any).mockRejectedValue(new CauseQuotaFullException());
+
+            await expect(service.match(5, { cause_id: 101 })).rejects.toThrow(CauseQuotaFullException);
+        });
+
+        it('19. should propagate NotFoundException when volunteer profile is not found', async () => {
+            (submissionService.create as any).mockRejectedValue(
+                new NotFoundException("Volunteer profile for user '5' not found."),
+            );
+
+            await expect(service.match(5, { cause_id: 101 })).rejects.toThrow(NotFoundException);
+        });
+
+        it('20. should reject invalid cause_id values in CreateMatchDto via ValidationPipe', async () => {
+            await expect(
+                validationPipe.transform({ cause_id: 0 }, { type: 'body', metatype: CreateMatchDto }),
+            ).rejects.toThrow(BadRequestException);
+
+            await expect(
+                validationPipe.transform({ cause_id: -5 }, { type: 'body', metatype: CreateMatchDto }),
+            ).rejects.toThrow(BadRequestException);
+
+            await expect(
+                validationPipe.transform({ cause_id: 1.5 }, { type: 'body', metatype: CreateMatchDto }),
+            ).rejects.toThrow(BadRequestException);
+
+            await expect(validationPipe.transform({}, { type: 'body', metatype: CreateMatchDto })).rejects.toThrow(
+                BadRequestException,
+            );
+        });
+
+        it('21. should reject justification exceeding 1000 characters in CreateMatchDto via ValidationPipe', async () => {
+            const longJustification = 'a'.repeat(1001);
+
+            await expect(
+                validationPipe.transform(
+                    { cause_id: 101, justification: longJustification },
+                    { type: 'body', metatype: CreateMatchDto },
+                ),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('22. should reject unwhitelisted properties like volunteer_id via ValidationPipe', async () => {
+            await expect(
+                validationPipe.transform(
+                    { cause_id: 101, volunteer_id: 99, status: 'accepted' },
+                    { type: 'body', metatype: CreateMatchDto },
+                ),
+            ).rejects.toThrow(BadRequestException);
         });
     });
 });
