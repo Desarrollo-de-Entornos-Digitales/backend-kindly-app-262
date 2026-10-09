@@ -16,7 +16,6 @@ import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { FilterSubmissionsDto } from './dto/filter-submissions.dto';
 import { SubmissionStatus } from './submission-status.enum';
 
-// Datos de la causa que ve el voluntario sobre su postulación (US-4.1.4)
 const CAUSE_SUMMARY: FindOptionsSelect<Cause> = {
     id: true,
     title: true,
@@ -27,7 +26,6 @@ const CAUSE_SUMMARY: FindOptionsSelect<Cause> = {
     is_available: true,
 };
 
-// Perfil del postulante que ve el organizador (US-4.2.2); nunca exponer la contraseña
 const APPLICANT_PROFILE: FindOptionsSelect<Volunteer> = {
     id: true,
     description: true,
@@ -125,7 +123,6 @@ export class SubmissionService {
         return this.dataSource.transaction(async (manager) => {
             const submission = await this.findPendingSubmission(manager, id);
 
-            // Bloquea la fila de la causa para que dos aceptaciones simultáneas no superen el cupo
             const cause = await manager.findOne(Cause, {
                 where: { id: submission.cause_id },
                 lock: { mode: 'pessimistic_write' },
@@ -159,7 +156,6 @@ export class SubmissionService {
         return submission;
     }
 
-    // capacity null significa que la causa no tiene límite de cupos (US-4.2.6)
     private async assertCapacityAvailable(manager: EntityManager, cause: Cause): Promise<void> {
         if (cause.capacity === null || cause.capacity === undefined) {
             return;

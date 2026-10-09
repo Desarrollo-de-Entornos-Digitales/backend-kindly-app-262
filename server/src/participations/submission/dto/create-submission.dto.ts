@@ -1,7 +1,6 @@
 import { IsInt, IsNotEmpty, IsPositive, IsString, MaxLength } from 'class-validator';
 
 export class CreateSubmissionDto {
-    // TODO: tomar el voluntario del JWT cuando auth (Persona 1) esté integrado a develop
     @IsInt()
     @IsPositive()
     volunteer_id!: number;
