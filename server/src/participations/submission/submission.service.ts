@@ -148,9 +148,10 @@ export class SubmissionService {
         });
     }
 
-    reject(id: number): Promise<Submission> {
+    reject(id: number, userId: number): Promise<Submission> {
         return this.dataSource.transaction(async (manager) => {
             const submission = await this.findPendingSubmission(manager, id);
+            await this.assertCauseOwner(submission.cause_id, userId);
             submission.status = SubmissionStatus.REJECTED;
             return manager.save(submission);
         });

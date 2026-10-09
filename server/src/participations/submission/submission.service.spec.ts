@@ -235,15 +235,32 @@ describe('SubmissionService', () => {
     });
 
     describe('reject', () => {
+        beforeEach(() => {
+            causeRepository.findOneBy.mockResolvedValue(cause({ organizer_id: 3 }));
+            organizerRepository.findOneBy.mockResolvedValue({ id: 3 } as Organizer);
+        });
+
+        it('fails when the organizer does not own the cause', async () => {
+            manager.findOneBy.mockResolvedValue({
+                id: 1,
+                cause_id: 10,
+                status: SubmissionStatus.PENDING,
+            } as Submission);
+            organizerRepository.findOneBy.mockResolvedValue({ id: 4 } as Organizer);
+
+            await expect(service.reject(1, 9)).rejects.toThrow(ForbiddenException);
+            expect(manager.save).not.toHaveBeenCalled();
+        });
+
         it('rejects a pending submission', async () => {
             manager.findOneBy.mockResolvedValue({ id: 1, status: SubmissionStatus.PENDING } as Submission);
-            const result = await service.reject(1);
+            const result = await service.reject(1, 9);
             expect(result.status).toBe(SubmissionStatus.REJECTED);
         });
 
         it('fails when the submission was already accepted', async () => {
             manager.findOneBy.mockResolvedValue({ id: 1, status: SubmissionStatus.ACCEPTED } as Submission);
-            await expect(service.reject(1)).rejects.toThrow(InvalidSubmissionStatusException);
+            await expect(service.reject(1, 9)).rejects.toThrow(InvalidSubmissionStatusException);
         });
     });
 
