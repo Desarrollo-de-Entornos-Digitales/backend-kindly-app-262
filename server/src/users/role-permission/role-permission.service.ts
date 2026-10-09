@@ -1,26 +1,56 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
 import { CreateRolePermissionDto } from './dto/create-role-permission.dto';
-import { UpdateRolePermissionDto } from './dto/update-role-permission.dto';
+import { RolePermission } from '../entities/role-permission.entity';
 
 @Injectable()
 export class RolePermissionService {
-    create(_createRolePermissionDto: CreateRolePermissionDto) {
-        return 'This action adds a new rolePermission';
+    constructor(
+        @InjectRepository(RolePermission)
+        private readonly rolePermissionRepository: Repository<RolePermission>,
+    ) {}
+
+    async create(createRolePermissionDto: CreateRolePermissionDto): Promise<RolePermission> {
+        const { role_id, permission_id } = createRolePermissionDto;
+
+        const existing = await this.rolePermissionRepository.findOneBy({
+            role_id,
+            permission_id,
+        });
+
+        if (existing) {
+            throw new ConflictException('This permission is already assigned to the specified role');
+        }
+
+        const rolePermission = this.rolePermissionRepository.create(createRolePermissionDto);
+        return await this.rolePermissionRepository.save(rolePermission);
     }
 
-    findAll() {
-        return `This action returns all rolePermission`;
+    async findAll(): Promise<RolePermission[]> {
+        return await this.rolePermissionRepository.find({
+            relations: ['role', 'permission'],
+        });
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} rolePermission`;
+    async findByRole(role_id: number): Promise<RolePermission[]> {
+        return await this.rolePermissionRepository.find({
+            where: { role_id },
+            relations: ['permission'],
+        });
     }
 
-    update(id: number, _updateRolePermissionDto: UpdateRolePermissionDto) {
-        return `This action updates a #${id} rolePermission`;
-    }
+    async remove(role_id: number, permission_id: number): Promise<void> {
+        const existing = await this.rolePermissionRepository.findOneBy({
+            role_id,
+            permission_id,
+        });
 
-    remove(id: number) {
-        return `This action removes a #${id} rolePermission`;
+        if (!existing) {
+            throw new NotFoundException('The role-permission association was not found');
+        }
+
+        await this.rolePermissionRepository.delete({ role_id, permission_id });
     }
 }
