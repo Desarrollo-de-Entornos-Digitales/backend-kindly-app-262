@@ -1,7 +1,8 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, UseGuards } from '@nestjs/common';
 import { MatchesService } from './matches.service';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
+import { DismissMatchDto } from './dto/dismiss-match.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { PermissionsGuard } from '../auth/guards/permission.guard';
@@ -26,5 +27,13 @@ export class MatchesController {
     @Permissions('participate_causes')
     match(@CurrentUser('id') userId: number, @Body() createMatchDto: CreateMatchDto) {
         return this.matchesService.match(userId, createMatchDto);
+    }
+
+    @Post('dismiss')
+    @HttpCode(HttpStatus.OK)
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('volunteer')
+    dismiss(@CurrentUser('id') userId: number, @Body() dismissMatchDto: DismissMatchDto) {
+        return this.matchesService.dismiss(userId, dismissMatchDto);
     }
 }

@@ -17,6 +17,7 @@ import {
 } from '../common/exceptions';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
+import { DismissMatchDto } from './dto/dismiss-match.dto';
 
 describe('MatchesService', () => {
     let service: MatchesService;
@@ -162,6 +163,8 @@ describe('MatchesService', () => {
 
         causeRepository = {
             createQueryBuilder: jest.fn(() => mockQueryBuilder),
+            findOneBy: jest.fn(() => Promise.resolve(mockCause1)),
+            save: jest.fn(),
         };
 
         volunteerRepository = {
@@ -171,6 +174,8 @@ describe('MatchesService', () => {
         submissionRepository = {
             find: jest.fn(() => Promise.resolve([])),
             count: jest.fn(() => Promise.resolve(0)),
+            save: jest.fn(),
+            create: jest.fn(),
         };
 
         submissionService = {
@@ -480,6 +485,66 @@ describe('MatchesService', () => {
                     { type: 'body', metatype: CreateMatchDto },
                 ),
             ).rejects.toThrow(BadRequestException);
+        });
+    });
+
+    describe('US-3.1.4: Dismiss a cause', () => {
+        it('23. should successfully dismiss an existing cause without persisting anything', async () => {
+            const result = await service.dismiss(5, { cause_id: 101 });
+
+            expect(causeRepository.findOneBy).toHaveBeenCalledWith({ id: 101 });
+            expect(result).toEqual({
+                dismissed: true,
+                cause_id: 101,
+            });
+            expect(submissionRepository.create).not.toHaveBeenCalled();
+            expect(submissionRepository.save).not.toHaveBeenCalled();
+            expect(submissionService.create).not.toHaveBeenCalled();
+            expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('24. should propagate CauseNotFoundException when the dismissed cause does not exist', async () => {
+            (causeRepository.findOneBy as any).mockResolvedValue(null);
+
+            await expect(service.dismiss(5, { cause_id: 999 })).rejects.toThrow(CauseNotFoundException);
+            expect(submissionRepository.create).not.toHaveBeenCalled();
+            expect(submissionRepository.save).not.toHaveBeenCalled();
+            expect(submissionService.create).not.toHaveBeenCalled();
+        });
+
+        it('25. should reject invalid cause_id values in DismissMatchDto via ValidationPipe', async () => {
+            await expect(
+                validationPipe.transform({ cause_id: 0 }, { type: 'body', metatype: DismissMatchDto }),
+            ).rejects.toThrow(BadRequestException);
+
+            await expect(
+                validationPipe.transform({ cause_id: -1 }, { type: 'body', metatype: DismissMatchDto }),
+            ).rejects.toThrow(BadRequestException);
+
+            await expect(
+                validationPipe.transform({ cause_id: 2.7 }, { type: 'body', metatype: DismissMatchDto }),
+            ).rejects.toThrow(BadRequestException);
+
+            await expect(validationPipe.transform({}, { type: 'body', metatype: DismissMatchDto })).rejects.toThrow(
+                BadRequestException,
+            );
+        });
+
+        it('26. should reject unwhitelisted properties like volunteer_id in DismissMatchDto via ValidationPipe', async () => {
+            await expect(
+                validationPipe.transform(
+                    { cause_id: 101, volunteer_id: 5, extra: 'forbidden' },
+                    { type: 'body', metatype: DismissMatchDto },
+                ),
+            ).rejects.toThrow(BadRequestException);
+        });
+
+        it('27. should confirm dismiss does not alter any existing submission or cause state', async () => {
+            await service.dismiss(5, { cause_id: 101 });
+
+            expect(submissionRepository.save).not.toHaveBeenCalled();
+            expect(submissionService.create).not.toHaveBeenCalled();
+            expect(causeRepository.save).not.toHaveBeenCalled();
         });
     });
 });

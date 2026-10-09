@@ -5,9 +5,11 @@ import { Cause } from '../causes/entities/cause.entity';
 import { Volunteer } from '../volunteers/entities/volunteer.entity';
 import { Submission } from '../participations/entities/submission.entity';
 import { SubmissionService } from '../participations/submission/submission.service';
+import { CauseNotFoundException } from '../common/exceptions';
 import { CauseCardDto } from './dto/cause-card.dto';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
+import { DismissMatchDto } from './dto/dismiss-match.dto';
 
 @Injectable()
 export class MatchesService {
@@ -120,5 +122,20 @@ export class MatchesService {
             cause_id: createMatchDto.cause_id,
             justification,
         });
+    }
+
+    async dismiss(
+        _userId: number,
+        dismissMatchDto: DismissMatchDto,
+    ): Promise<{ dismissed: boolean; cause_id: number }> {
+        const cause = await this.causeRepository.findOneBy({ id: dismissMatchDto.cause_id });
+        if (!cause) {
+            throw new CauseNotFoundException(dismissMatchDto.cause_id);
+        }
+
+        return {
+            dismissed: true,
+            cause_id: dismissMatchDto.cause_id,
+        };
     }
 }
