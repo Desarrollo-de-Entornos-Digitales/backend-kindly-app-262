@@ -158,6 +158,7 @@ describe('MatchesService', () => {
             where: jest.fn().mockReturnThis(),
             andWhere: jest.fn().mockReturnThis(),
             orderBy: jest.fn().mockReturnThis(),
+            addOrderBy: jest.fn().mockReturnThis(),
             getMany: jest.fn().mockResolvedValue([mockCause1, mockCause2]),
         };
 
@@ -232,6 +233,8 @@ describe('MatchesService', () => {
             expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('cause.progress = :progress', {
                 progress: 'open',
             });
+            expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('cause.start_date', 'ASC');
+            expect(mockQueryBuilder.addOrderBy).toHaveBeenCalledWith('cause.id', 'ASC');
             expect(cards).toHaveLength(2);
             expect(cards[0].id).toBe(101);
             expect(cards[1].id).toBe(102);

@@ -53,6 +53,7 @@ export class MatchesService {
         }
 
         queryBuilder.orderBy('cause.start_date', 'ASC');
+        queryBuilder.addOrderBy('cause.id', 'ASC');
 
         const candidateCauses = await queryBuilder.getMany();
 
