@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, FindOptionsSelect, In, Repository } from 'typeorm';
 import {
@@ -7,9 +7,11 @@ import {
     CauseQuotaFullException,
     DuplicateSubmissionException,
     InvalidSubmissionStatusException,
+    OrganizerNotFoundException,
     SubmissionNotFoundException,
 } from '../../common/exceptions';
 import { Cause } from '../../causes/entities/cause.entity';
+import { Organizer } from '../../organizations/entities/organizer.entity';
 import { Volunteer } from '../../volunteers/entities/volunteer.entity';
 import { Submission } from '../entities/submission.entity';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
@@ -42,6 +44,8 @@ export class SubmissionService {
         private readonly causeRepository: Repository<Cause>,
         @InjectRepository(Volunteer)
         private readonly volunteerRepository: Repository<Volunteer>,
+        @InjectRepository(Organizer)
+        private readonly organizerRepository: Repository<Organizer>,
         private readonly dataSource: DataSource,
     ) {}
 
@@ -105,7 +109,7 @@ export class SubmissionService {
         });
     }
 
-    async findOne(id: number): Promise<Submission> {
+    async findOne(id: number, userId: number, role: string): Promise<Submission> {
         const submission = await this.submissionRepository.findOne({
             where: { id },
             relations: { cause: true, volunteer: { user: true } },
@@ -113,6 +117,17 @@ export class SubmissionService {
         });
         if (!submission) {
             throw new SubmissionNotFoundException(id);
+        }
+
+        const canView =
+            role === 'organizer'
+                ? await this.causeRepository.existsBy({
+                      id: submission.cause_id,
+                      organizer_id: (await this.findOrganizerByUser(userId)).id,
+                  })
+                : submission.volunteer_id === (await this.findVolunteerByUser(userId)).id;
+        if (!canView) {
+            throw new ForbiddenException(`Submission with ID '${id}' does not belong to the current user.`);
         }
         return submission;
     }
@@ -149,6 +164,14 @@ export class SubmissionService {
             throw new NotFoundException(`Volunteer profile for user '${userId}' not found.`);
         }
         return volunteer;
+    }
+
+    private async findOrganizerByUser(userId: number): Promise<Organizer> {
+        const organizer = await this.organizerRepository.findOneBy({ user_id: userId });
+        if (!organizer) {
+            throw new OrganizerNotFoundException();
+        }
+        return organizer;
     }
 
     private async findPendingSubmission(manager: EntityManager, id: number): Promise<Submission> {

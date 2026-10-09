@@ -1,5 +1,5 @@
 import { describe, beforeEach, it, expect, jest } from '@jest/globals';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
@@ -11,6 +11,7 @@ import {
     SubmissionNotFoundException,
 } from '../../common/exceptions';
 import { Cause } from '../../causes/entities/cause.entity';
+import { Organizer } from '../../organizations/entities/organizer.entity';
 import { Volunteer } from '../../volunteers/entities/volunteer.entity';
 import { Submission } from '../entities/submission.entity';
 import { SubmissionService } from './submission.service';
@@ -29,10 +30,13 @@ describe('SubmissionService', () => {
     };
     const causeRepository = {
         findOneBy: jest.fn<() => Promise<Cause | null>>(),
-        existsBy: jest.fn<() => Promise<boolean>>(),
+        existsBy: jest.fn<(where: object) => Promise<boolean>>(),
     };
     const volunteerRepository = {
         findOneBy: jest.fn<(where: object) => Promise<Volunteer | null>>(),
+    };
+    const organizerRepository = {
+        findOneBy: jest.fn<(where: object) => Promise<Organizer | null>>(),
     };
     const manager = {
         findOneBy: jest.fn<() => Promise<Submission | null>>(),
@@ -58,6 +62,7 @@ describe('SubmissionService', () => {
                 { provide: getRepositoryToken(Submission), useValue: submissionRepository },
                 { provide: getRepositoryToken(Cause), useValue: causeRepository },
                 { provide: getRepositoryToken(Volunteer), useValue: volunteerRepository },
+                { provide: getRepositoryToken(Organizer), useValue: organizerRepository },
                 { provide: DataSource, useValue: dataSource },
             ],
         }).compile();
@@ -198,9 +203,39 @@ describe('SubmissionService', () => {
     });
 
     describe('findOne', () => {
+        const submission = { id: 1, volunteer_id: 1, cause_id: 10 } as Submission;
+
         it('fails when the submission does not exist', async () => {
             submissionRepository.findOne.mockResolvedValue(null);
-            await expect(service.findOne(99)).rejects.toThrow(SubmissionNotFoundException);
+            await expect(service.findOne(99, 7, 'volunteer')).rejects.toThrow(SubmissionNotFoundException);
+        });
+
+        it('returns the submission to the volunteer who owns it', async () => {
+            submissionRepository.findOne.mockResolvedValue(submission);
+            volunteerRepository.findOneBy.mockResolvedValue({ id: 1 } as Volunteer);
+            await expect(service.findOne(1, 7, 'volunteer')).resolves.toBe(submission);
+        });
+
+        it('fails when another volunteer requests it', async () => {
+            submissionRepository.findOne.mockResolvedValue(submission);
+            volunteerRepository.findOneBy.mockResolvedValue({ id: 2 } as Volunteer);
+            await expect(service.findOne(1, 8, 'volunteer')).rejects.toThrow(ForbiddenException);
+        });
+
+        it('returns the submission to the organizer of the cause', async () => {
+            submissionRepository.findOne.mockResolvedValue(submission);
+            organizerRepository.findOneBy.mockResolvedValue({ id: 3 } as Organizer);
+            causeRepository.existsBy.mockResolvedValue(true);
+
+            await expect(service.findOne(1, 9, 'organizer')).resolves.toBe(submission);
+            expect(causeRepository.existsBy).toHaveBeenCalledWith({ id: 10, organizer_id: 3 });
+        });
+
+        it('fails when the organizer does not own the cause', async () => {
+            submissionRepository.findOne.mockResolvedValue(submission);
+            organizerRepository.findOneBy.mockResolvedValue({ id: 4 } as Organizer);
+            causeRepository.existsBy.mockResolvedValue(false);
+            await expect(service.findOne(1, 9, 'organizer')).rejects.toThrow(ForbiddenException);
         });
     });
 });

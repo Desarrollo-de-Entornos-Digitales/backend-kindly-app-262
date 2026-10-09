@@ -36,8 +36,14 @@ export class SubmissionController {
     }
 
     @Get(':id')
-    findOne(@Param('id', PositiveIntPipe) id: number) {
-        return this.submissionService.findOne(id);
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('volunteer', 'organizer')
+    findOne(
+        @Param('id', PositiveIntPipe) id: number,
+        @CurrentUser('id') userId: number,
+        @CurrentUser('role') role: string,
+    ) {
+        return this.submissionService.findOne(id, userId, role);
     }
 
     @Patch(':id/accept')
