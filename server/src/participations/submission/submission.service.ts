@@ -129,9 +129,10 @@ export class SubmissionService {
         return submission;
     }
 
-    accept(id: number): Promise<Submission> {
+    accept(id: number, userId: number): Promise<Submission> {
         return this.dataSource.transaction(async (manager) => {
             const submission = await this.findPendingSubmission(manager, id);
+            await this.assertCauseOwner(submission.cause_id, userId);
 
             const cause = await manager.findOne(Cause, {
                 where: { id: submission.cause_id },

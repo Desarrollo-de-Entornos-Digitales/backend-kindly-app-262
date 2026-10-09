@@ -54,8 +54,11 @@ export class SubmissionController {
     }
 
     @Patch(':id/accept')
-    accept(@Param('id', PositiveIntPipe) id: number) {
-        return this.submissionService.accept(id);
+    @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+    @Roles('organizer')
+    @Permissions('manage_causes')
+    accept(@Param('id', PositiveIntPipe) id: number, @CurrentUser('id') userId: number) {
+        return this.submissionService.accept(id, userId);
     }
 
     @Patch(':id/reject')

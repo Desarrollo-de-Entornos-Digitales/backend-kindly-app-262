@@ -167,6 +167,23 @@ describe('SubmissionService', () => {
     });
 
     describe('accept', () => {
+        beforeEach(() => {
+            causeRepository.findOneBy.mockResolvedValue(cause({ organizer_id: 3 }));
+            organizerRepository.findOneBy.mockResolvedValue({ id: 3 } as Organizer);
+        });
+
+        it('fails when the organizer does not own the cause', async () => {
+            manager.findOneBy.mockResolvedValue({
+                id: 1,
+                cause_id: 10,
+                status: SubmissionStatus.PENDING,
+            } as Submission);
+            organizerRepository.findOneBy.mockResolvedValue({ id: 4 } as Organizer);
+
+            await expect(service.accept(1, 9)).rejects.toThrow(ForbiddenException);
+            expect(manager.save).not.toHaveBeenCalled();
+        });
+
         it('accepts a pending submission when there is capacity', async () => {
             manager.findOneBy.mockResolvedValue({
                 id: 1,
@@ -176,7 +193,7 @@ describe('SubmissionService', () => {
             manager.findOne.mockResolvedValue(cause());
             manager.countBy.mockResolvedValue(1);
 
-            const result = await service.accept(1);
+            const result = await service.accept(1, 9);
             expect(result.status).toBe(SubmissionStatus.ACCEPTED);
         });
 
@@ -188,7 +205,7 @@ describe('SubmissionService', () => {
             } as Submission);
             manager.findOne.mockResolvedValue(cause({ capacity: null as unknown as number }));
 
-            const result = await service.accept(1);
+            const result = await service.accept(1, 9);
             expect(result.status).toBe(SubmissionStatus.ACCEPTED);
             expect(manager.countBy).not.toHaveBeenCalled();
         });
@@ -202,18 +219,18 @@ describe('SubmissionService', () => {
             manager.findOne.mockResolvedValue(cause());
             manager.countBy.mockResolvedValue(2);
 
-            await expect(service.accept(1)).rejects.toThrow(CauseQuotaFullException);
+            await expect(service.accept(1, 9)).rejects.toThrow(CauseQuotaFullException);
             expect(manager.save).not.toHaveBeenCalled();
         });
 
         it('fails when the submission is not pending', async () => {
             manager.findOneBy.mockResolvedValue({ id: 1, status: SubmissionStatus.REJECTED } as Submission);
-            await expect(service.accept(1)).rejects.toThrow(InvalidSubmissionStatusException);
+            await expect(service.accept(1, 9)).rejects.toThrow(InvalidSubmissionStatusException);
         });
 
         it('fails when the submission does not exist', async () => {
             manager.findOneBy.mockResolvedValue(null);
-            await expect(service.accept(99)).rejects.toThrow(SubmissionNotFoundException);
+            await expect(service.accept(99, 9)).rejects.toThrow(SubmissionNotFoundException);
         });
     });
 
