@@ -5,6 +5,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, EntityManager } from 'typeorm';
 import {
     CauseNotAvailableException,
+    CauseNotFoundException,
     CauseQuotaFullException,
     DuplicateSubmissionException,
     InvalidSubmissionStatusException,
@@ -29,7 +30,7 @@ describe('SubmissionService', () => {
         findOne: jest.fn<() => Promise<Submission | null>>(),
     };
     const causeRepository = {
-        findOneBy: jest.fn<() => Promise<Cause | null>>(),
+        findOneBy: jest.fn<(where: object) => Promise<Cause | null>>(),
         existsBy: jest.fn<(where: object) => Promise<boolean>>(),
     };
     const volunteerRepository = {
@@ -135,6 +136,33 @@ describe('SubmissionService', () => {
         it('fails when the user has no volunteer profile', async () => {
             volunteerRepository.findOneBy.mockResolvedValue(null);
             await expect(service.findMine(7, {})).rejects.toThrow(NotFoundException);
+        });
+    });
+
+    describe('findByCause', () => {
+        it('returns the applicants to the organizer of the cause', async () => {
+            causeRepository.findOneBy.mockResolvedValue(cause({ organizer_id: 3 }));
+            organizerRepository.findOneBy.mockResolvedValue({ id: 3 } as Organizer);
+            submissionRepository.find.mockResolvedValue([]);
+
+            await service.findByCause(10, 9, { status: SubmissionStatus.PENDING });
+
+            expect(organizerRepository.findOneBy).toHaveBeenCalledWith({ user_id: 9 });
+            expect(submissionRepository.find).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { cause_id: 10, status: SubmissionStatus.PENDING } }),
+            );
+        });
+
+        it('fails when the organizer does not own the cause', async () => {
+            causeRepository.findOneBy.mockResolvedValue(cause({ organizer_id: 3 }));
+            organizerRepository.findOneBy.mockResolvedValue({ id: 4 } as Organizer);
+            await expect(service.findByCause(10, 9, {})).rejects.toThrow(ForbiddenException);
+            expect(submissionRepository.find).not.toHaveBeenCalled();
+        });
+
+        it('fails when the cause does not exist', async () => {
+            causeRepository.findOneBy.mockResolvedValue(null);
+            await expect(service.findByCause(99, 9, {})).rejects.toThrow(CauseNotFoundException);
         });
     });
 

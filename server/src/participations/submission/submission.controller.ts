@@ -31,8 +31,15 @@ export class SubmissionController {
     }
 
     @Get('cause/:causeId')
-    findByCause(@Param('causeId', PositiveIntPipe) causeId: number, @Query() filter: FilterSubmissionsDto) {
-        return this.submissionService.findByCause(causeId, filter);
+    @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+    @Roles('organizer')
+    @Permissions('manage_causes')
+    findByCause(
+        @Param('causeId', PositiveIntPipe) causeId: number,
+        @CurrentUser('id') userId: number,
+        @Query() filter: FilterSubmissionsDto,
+    ) {
+        return this.submissionService.findByCause(causeId, userId, filter);
     }
 
     @Get(':id')

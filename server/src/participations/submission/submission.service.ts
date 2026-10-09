@@ -95,11 +95,8 @@ export class SubmissionService {
         });
     }
 
-    async findByCause(causeId: number, filter: FilterSubmissionsDto): Promise<Submission[]> {
-        const causeExists = await this.causeRepository.existsBy({ id: causeId });
-        if (!causeExists) {
-            throw new CauseNotFoundException(causeId);
-        }
+    async findByCause(causeId: number, userId: number, filter: FilterSubmissionsDto): Promise<Submission[]> {
+        await this.assertCauseOwner(causeId, userId);
 
         return this.submissionRepository.find({
             where: { cause_id: causeId, status: filter.status },
@@ -172,6 +169,17 @@ export class SubmissionService {
             throw new OrganizerNotFoundException();
         }
         return organizer;
+    }
+
+    private async assertCauseOwner(causeId: number, userId: number): Promise<void> {
+        const cause = await this.causeRepository.findOneBy({ id: causeId });
+        if (!cause) {
+            throw new CauseNotFoundException(causeId);
+        }
+        const organizer = await this.findOrganizerByUser(userId);
+        if (cause.organizer_id !== organizer.id) {
+            throw new ForbiddenException(`Cause with ID '${causeId}' does not belong to the current organizer.`);
+        }
     }
 
     private async findPendingSubmission(manager: EntityManager, id: number): Promise<Submission> {
