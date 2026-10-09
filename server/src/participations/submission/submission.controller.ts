@@ -22,9 +22,12 @@ export class SubmissionController {
         return this.submissionService.create(userId, createSubmissionDto);
     }
 
-    @Get('volunteer/:volunteerId')
-    findByVolunteer(@Param('volunteerId', PositiveIntPipe) volunteerId: number, @Query() filter: FilterSubmissionsDto) {
-        return this.submissionService.findByVolunteer(volunteerId, filter);
+    @Get('me')
+    @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+    @Roles('volunteer')
+    @Permissions('participate_causes')
+    findMine(@CurrentUser('id') userId: number, @Query() filter: FilterSubmissionsDto) {
+        return this.submissionService.findMine(userId, filter);
     }
 
     @Get('cause/:causeId')

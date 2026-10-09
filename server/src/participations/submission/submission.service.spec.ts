@@ -24,7 +24,7 @@ describe('SubmissionService', () => {
         existsBy: jest.fn<() => Promise<boolean>>(),
         create: jest.fn((data: Partial<Submission>) => data as Submission),
         save: jest.fn((data: Submission) => Promise.resolve(Object.assign(data, { id: 1 }))),
-        find: jest.fn<() => Promise<Submission[]>>(),
+        find: jest.fn<(options: object) => Promise<Submission[]>>(),
         findOne: jest.fn<() => Promise<Submission | null>>(),
     };
     const causeRepository = {
@@ -111,6 +111,25 @@ describe('SubmissionService', () => {
         it('fails when the cause is already full', async () => {
             manager.countBy.mockResolvedValue(2);
             await expect(service.create(userId, dto)).rejects.toThrow(CauseQuotaFullException);
+        });
+    });
+
+    describe('findMine', () => {
+        it('returns the submissions of the authenticated volunteer', async () => {
+            volunteerRepository.findOneBy.mockResolvedValue({ id: 1 } as Volunteer);
+            submissionRepository.find.mockResolvedValue([]);
+
+            await service.findMine(7, { status: SubmissionStatus.PENDING });
+
+            expect(volunteerRepository.findOneBy).toHaveBeenCalledWith({ user_id: 7 });
+            expect(submissionRepository.find).toHaveBeenCalledWith(
+                expect.objectContaining({ where: { volunteer_id: 1, status: SubmissionStatus.PENDING } }),
+            );
+        });
+
+        it('fails when the user has no volunteer profile', async () => {
+            volunteerRepository.findOneBy.mockResolvedValue(null);
+            await expect(service.findMine(7, {})).rejects.toThrow(NotFoundException);
         });
     });
 

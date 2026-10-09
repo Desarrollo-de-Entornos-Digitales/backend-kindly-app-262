@@ -48,11 +48,7 @@ export class SubmissionService {
     async create(userId: number, createSubmissionDto: CreateSubmissionDto): Promise<Submission> {
         const { cause_id, justification } = createSubmissionDto;
 
-        const volunteer = await this.volunteerRepository.findOneBy({ user_id: userId });
-        if (!volunteer) {
-            throw new NotFoundException(`Volunteer profile for user '${userId}' not found.`);
-        }
-        const volunteer_id = volunteer.id;
+        const volunteer_id = (await this.findVolunteerByUser(userId)).id;
 
         const cause = await this.causeRepository.findOneBy({ id: cause_id });
         if (!cause) {
@@ -85,9 +81,10 @@ export class SubmissionService {
         return this.submissionRepository.save(submission);
     }
 
-    findByVolunteer(volunteerId: number, filter: FilterSubmissionsDto): Promise<Submission[]> {
+    async findMine(userId: number, filter: FilterSubmissionsDto): Promise<Submission[]> {
+        const volunteer = await this.findVolunteerByUser(userId);
         return this.submissionRepository.find({
-            where: { volunteer_id: volunteerId, status: filter.status },
+            where: { volunteer_id: volunteer.id, status: filter.status },
             relations: { cause: true },
             select: { cause: CAUSE_SUMMARY },
             order: { created_at: 'DESC' },
@@ -144,6 +141,14 @@ export class SubmissionService {
             submission.status = SubmissionStatus.REJECTED;
             return manager.save(submission);
         });
+    }
+
+    private async findVolunteerByUser(userId: number): Promise<Volunteer> {
+        const volunteer = await this.volunteerRepository.findOneBy({ user_id: userId });
+        if (!volunteer) {
+            throw new NotFoundException(`Volunteer profile for user '${userId}' not found.`);
+        }
+        return volunteer;
     }
 
     private async findPendingSubmission(manager: EntityManager, id: number): Promise<Submission> {
