@@ -3,10 +3,6 @@ import { IsInt, IsNotEmpty, IsPositive, IsString, MaxLength } from 'class-valida
 export class CreateSubmissionDto {
     @IsInt()
     @IsPositive()
-    volunteer_id!: number;
-
-    @IsInt()
-    @IsPositive()
     cause_id!: number;
 
     @IsString()

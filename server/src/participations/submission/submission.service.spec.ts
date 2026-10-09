@@ -32,7 +32,7 @@ describe('SubmissionService', () => {
         existsBy: jest.fn<() => Promise<boolean>>(),
     };
     const volunteerRepository = {
-        findOneBy: jest.fn<() => Promise<Volunteer | null>>(),
+        findOneBy: jest.fn<(where: object) => Promise<Volunteer | null>>(),
     };
     const manager = {
         findOneBy: jest.fn<() => Promise<Submission | null>>(),
@@ -66,7 +66,8 @@ describe('SubmissionService', () => {
     });
 
     describe('create', () => {
-        const dto = { volunteer_id: 1, cause_id: 10, justification: 'Quiero ayudar' };
+        const userId = 7;
+        const dto = { cause_id: 10, justification: 'Quiero ayudar' };
 
         beforeEach(() => {
             volunteerRepository.findOneBy.mockResolvedValue({ id: 1 } as Volunteer);
@@ -76,34 +77,40 @@ describe('SubmissionService', () => {
         });
 
         it('creates a pending submission with the justification', async () => {
-            const result = await service.create(dto);
+            const result = await service.create(userId, dto);
             expect(result.status).toBe(SubmissionStatus.PENDING);
             expect(result.justification).toBe('Quiero ayudar');
         });
 
-        it('fails when the volunteer does not exist', async () => {
+        it('uses the volunteer profile of the authenticated user', async () => {
+            const result = await service.create(userId, dto);
+            expect(volunteerRepository.findOneBy).toHaveBeenCalledWith({ user_id: userId });
+            expect(result.volunteer_id).toBe(1);
+        });
+
+        it('fails when the user has no volunteer profile', async () => {
             volunteerRepository.findOneBy.mockResolvedValue(null);
-            await expect(service.create(dto)).rejects.toThrow(NotFoundException);
+            await expect(service.create(userId, dto)).rejects.toThrow(NotFoundException);
         });
 
         it('fails when the cause is not available', async () => {
             causeRepository.findOneBy.mockResolvedValue(cause({ is_available: false }));
-            await expect(service.create(dto)).rejects.toThrow(CauseNotAvailableException);
+            await expect(service.create(userId, dto)).rejects.toThrow(CauseNotAvailableException);
         });
 
         it('fails when the cause has already ended', async () => {
             causeRepository.findOneBy.mockResolvedValue(cause({ end_date: new Date('2020-01-01') }));
-            await expect(service.create(dto)).rejects.toThrow(CauseNotAvailableException);
+            await expect(service.create(userId, dto)).rejects.toThrow(CauseNotAvailableException);
         });
 
         it('fails when the volunteer already has an active submission', async () => {
             submissionRepository.existsBy.mockResolvedValue(true);
-            await expect(service.create(dto)).rejects.toThrow(DuplicateSubmissionException);
+            await expect(service.create(userId, dto)).rejects.toThrow(DuplicateSubmissionException);
         });
 
         it('fails when the cause is already full', async () => {
             manager.countBy.mockResolvedValue(2);
-            await expect(service.create(dto)).rejects.toThrow(CauseQuotaFullException);
+            await expect(service.create(userId, dto)).rejects.toThrow(CauseQuotaFullException);
         });
     });
 

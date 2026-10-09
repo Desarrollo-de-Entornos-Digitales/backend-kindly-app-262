@@ -45,13 +45,14 @@ export class SubmissionService {
         private readonly dataSource: DataSource,
     ) {}
 
-    async create(createSubmissionDto: CreateSubmissionDto): Promise<Submission> {
-        const { volunteer_id, cause_id, justification } = createSubmissionDto;
+    async create(userId: number, createSubmissionDto: CreateSubmissionDto): Promise<Submission> {
+        const { cause_id, justification } = createSubmissionDto;
 
-        const volunteer = await this.volunteerRepository.findOneBy({ id: volunteer_id });
+        const volunteer = await this.volunteerRepository.findOneBy({ user_id: userId });
         if (!volunteer) {
-            throw new NotFoundException(`Volunteer with identifier '${volunteer_id}' not found.`);
+            throw new NotFoundException(`Volunteer profile for user '${userId}' not found.`);
         }
+        const volunteer_id = volunteer.id;
 
         const cause = await this.causeRepository.findOneBy({ id: cause_id });
         if (!cause) {

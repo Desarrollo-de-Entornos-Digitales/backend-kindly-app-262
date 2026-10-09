@@ -1,5 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { PositiveIntPipe } from '../../common/pipes/positive-int.pipe';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { PermissionsGuard } from '../../auth/guards/permission.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
+import { Permissions } from '../../auth/decorators/permission.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { SubmissionService } from './submission.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { FilterSubmissionsDto } from './dto/filter-submissions.dto';
@@ -9,8 +15,11 @@ export class SubmissionController {
     constructor(private readonly submissionService: SubmissionService) {}
 
     @Post()
-    create(@Body() createSubmissionDto: CreateSubmissionDto) {
-        return this.submissionService.create(createSubmissionDto);
+    @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+    @Roles('volunteer')
+    @Permissions('participate_causes')
+    create(@CurrentUser('id') userId: number, @Body() createSubmissionDto: CreateSubmissionDto) {
+        return this.submissionService.create(userId, createSubmissionDto);
     }
 
     @Get('volunteer/:volunteerId')
