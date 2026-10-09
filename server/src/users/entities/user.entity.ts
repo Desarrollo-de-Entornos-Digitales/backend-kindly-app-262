@@ -21,8 +21,8 @@ export class User {
     @Column({ unique: true })
     email!: string;
 
-    @Column()
-    contact!: string;
+    @Column({ name: 'contact', type: 'varchar', nullable: true, default: null })
+    contact?: string | null;
 
     @Column()
     password!: string;

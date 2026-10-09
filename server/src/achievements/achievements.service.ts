@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { CreateAchievementDto } from './dto/create-achievement.dto';
-import { UpdateAchievementDto } from './dto/update-achievement.dto';
+import { CreateAchievementDto } from './achievement/dto/create-achievement.dto';
+import { UpdateAchievementDto } from './achievement/dto/update-achievement.dto';
+import { QueryAchievementsDto } from './dto/query-achievements.dto';
 
 @Injectable()
 export class AchievementsService {
@@ -8,7 +9,7 @@ export class AchievementsService {
         return 'This action adds a new achievement';
     }
 
-    findAll() {
+    findAll(_query?: QueryAchievementsDto) {
         return `This action returns all achievements`;
     }
 

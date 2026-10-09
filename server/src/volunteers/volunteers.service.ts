@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { CreateVolunteerDto } from './dto/create-volunteer.dto';
-import { UpdateVolunteerDto } from './dto/update-volunteer.dto';
+import { CreateVolunteerDto } from './volunteer/dto/create-volunteer.dto';
+import { UpdateVolunteerDto } from './volunteer/dto/update-volunteer.dto';
+import { QueryVolunteersDto } from './dto/query-volunteers.dto';
 
 @Injectable()
 export class VolunteersService {
@@ -8,7 +9,7 @@ export class VolunteersService {
         return 'This action adds a new volunteer';
     }
 
-    findAll() {
+    findAll(_query?: QueryVolunteersDto) {
         return `This action returns all volunteers`;
     }
 

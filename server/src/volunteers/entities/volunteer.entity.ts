@@ -32,7 +32,7 @@ export class Volunteer {
     @Column({ name: 'emergency_contact' })
     emergency_contact!: string;
 
-    @Column({ name: 'completed_causes' })
+    @Column({ name: 'completed_causes', default: 0 })
     completed_causes!: number;
 
     @OneToOne(() => User, (user) => user.volunteer)

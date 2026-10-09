@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { VolunteersService } from './volunteers.service';
-import { CreateVolunteerDto } from './dto/create-volunteer.dto';
-import { UpdateVolunteerDto } from './dto/update-volunteer.dto';
+import { CreateVolunteerDto } from './volunteer/dto/create-volunteer.dto';
+import { UpdateVolunteerDto } from './volunteer/dto/update-volunteer.dto';
+import { QueryVolunteersDto } from './dto/query-volunteers.dto';
 
 @Controller('volunteers')
 export class VolunteersController {
@@ -13,8 +14,8 @@ export class VolunteersController {
     }
 
     @Get()
-    findAll() {
-        return this.volunteersService.findAll();
+    findAll(@Query() query: QueryVolunteersDto) {
+        return this.volunteersService.findAll(query);
     }
 
     @Get(':id')

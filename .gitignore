@@ -1,0 +1,20 @@
+# Personal & local guides
+guide/guide-persona-1-days-1-2*.md
+
+# Dependencies & build
+node_modules/
+dist/
+build/
+.env
+.env.*
+!.env.example
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
