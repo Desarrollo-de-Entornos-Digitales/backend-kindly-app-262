@@ -27,3 +27,4 @@ export * from './http/duplicate-submission.exception';
 export * from './http/volunteer-not-accepted.exception';
 export * from './http/duplicate-attendance.exception';
 export * from './http/invalid-submission-status.exception';
+export * from './http/invalid-qr-code.exception';
