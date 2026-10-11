@@ -10,6 +10,7 @@ import {
 import { Cause } from '../../causes/entities/cause.entity';
 import { Organizer } from '../../organizations/entities/organizer.entity';
 import { Volunteer } from '../../volunteers/entities/volunteer.entity';
+import { Attendance } from '../entities/attendance.entity';
 import { Submission } from '../entities/submission.entity';
 import { SubmissionStatus } from '../submission/submission-status.enum';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
@@ -25,6 +26,8 @@ export class AttendanceService {
         private readonly volunteerRepository: Repository<Volunteer>,
         @InjectRepository(Submission)
         private readonly submissionRepository: Repository<Submission>,
+        @InjectRepository(Attendance)
+        private readonly attendanceRepository: Repository<Attendance>,
     ) {}
 
     async getCauseQrCode(causeId: number, userId: number): Promise<{ cause_id: number; qr_code: string }> {
@@ -42,10 +45,7 @@ export class AttendanceService {
         return { cause_id: cause.id, qr_code: cause.qr_code };
     }
 
-    async checkIn(
-        userId: number,
-        createAttendanceDto: CreateAttendanceDto,
-    ): Promise<{ cause_id: number; volunteer_id: number }> {
+    async checkIn(userId: number, createAttendanceDto: CreateAttendanceDto): Promise<Attendance> {
         const volunteer = await this.volunteerRepository.findOneBy({ user_id: userId });
         if (!volunteer) {
             throw new NotFoundException(`Volunteer profile for user '${userId}' not found.`);
@@ -63,6 +63,8 @@ export class AttendanceService {
         if (!isAccepted) {
             throw new VolunteerNotAcceptedException();
         }
-        return { cause_id: cause.id, volunteer_id: volunteer.id };
+
+        const attendance = this.attendanceRepository.create({ cause_id: cause.id, volunteer_id: volunteer.id });
+        return this.attendanceRepository.save(attendance);
     }
 }

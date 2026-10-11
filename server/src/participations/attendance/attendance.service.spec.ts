@@ -11,6 +11,7 @@ import {
 import { Cause } from '../../causes/entities/cause.entity';
 import { Organizer } from '../../organizations/entities/organizer.entity';
 import { Volunteer } from '../../volunteers/entities/volunteer.entity';
+import { Attendance } from '../entities/attendance.entity';
 import { Submission } from '../entities/submission.entity';
 import { SubmissionStatus } from '../submission/submission-status.enum';
 import { AttendanceService } from './attendance.service';
@@ -29,6 +30,12 @@ describe('AttendanceService', () => {
     const submissionRepository = {
         existsBy: jest.fn<(where: object) => Promise<boolean>>(),
     };
+    const attendanceRepository = {
+        create: jest.fn((data: Partial<Attendance>) => data as Attendance),
+        save: jest.fn((attendance: Attendance) =>
+            Promise.resolve({ ...attendance, checked_in_at: new Date('2026-10-11T10:00:00Z') }),
+        ),
+    };
 
     beforeEach(async () => {
         jest.clearAllMocks();
@@ -39,6 +46,7 @@ describe('AttendanceService', () => {
                 { provide: getRepositoryToken(Organizer), useValue: organizerRepository },
                 { provide: getRepositoryToken(Volunteer), useValue: volunteerRepository },
                 { provide: getRepositoryToken(Submission), useValue: submissionRepository },
+                { provide: getRepositoryToken(Attendance), useValue: attendanceRepository },
             ],
         }).compile();
 
@@ -84,7 +92,7 @@ describe('AttendanceService', () => {
         });
 
         it('identifies the cause from the qr code and the volunteer from the jwt', async () => {
-            await expect(service.checkIn(7, dto)).resolves.toEqual({ cause_id: 10, volunteer_id: 1 });
+            await service.checkIn(7, dto);
             expect(volunteerRepository.findOneBy).toHaveBeenCalledWith({ user_id: 7 });
             expect(causeRepository.findOneBy).toHaveBeenCalledWith({ qr_code: 'QR-CAUSE-abc' });
         });
@@ -101,6 +109,18 @@ describe('AttendanceService', () => {
         it('fails when the volunteer was not accepted in the cause', async () => {
             submissionRepository.existsBy.mockResolvedValue(false);
             await expect(service.checkIn(7, dto)).rejects.toThrow(VolunteerNotAcceptedException);
+            expect(attendanceRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('registers the attendance with its check-in time', async () => {
+            const result = await service.checkIn(7, dto);
+
+            expect(attendanceRepository.create).toHaveBeenCalledWith({ cause_id: 10, volunteer_id: 1 });
+            expect(result).toEqual({
+                cause_id: 10,
+                volunteer_id: 1,
+                checked_in_at: new Date('2026-10-11T10:00:00Z'),
+            });
         });
 
         it('fails when the qr code does not match any cause', async () => {
