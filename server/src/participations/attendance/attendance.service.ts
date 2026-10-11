@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import {
+    CauseNotAvailableException,
     CauseNotFoundException,
     DuplicateAttendanceException,
     InvalidQrCodeException,
@@ -55,6 +56,11 @@ export class AttendanceService {
         const cause = await this.causeRepository.findOneBy({ qr_code: createAttendanceDto.qr_code });
         if (!cause) {
             throw new InvalidQrCodeException();
+        }
+
+        const now = new Date();
+        if (now < cause.start_date || now > cause.end_date) {
+            throw new CauseNotAvailableException('the cause is not in progress');
         }
 
         const isAccepted = await this.submissionRepository.existsBy({

@@ -4,6 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import {
+    CauseNotAvailableException,
     CauseNotFoundException,
     DuplicateAttendanceException,
     InvalidQrCodeException,
@@ -96,10 +97,19 @@ describe('AttendanceService', () => {
 
     describe('checkIn', () => {
         const dto = { qr_code: 'QR-CAUSE-abc' };
+        const hoursFromNow = (hours: number) => new Date(Date.now() + hours * 60 * 60 * 1000);
+        const inProgressCause = (overrides: Partial<Cause> = {}) =>
+            ({
+                id: 10,
+                qr_code: 'QR-CAUSE-abc',
+                start_date: hoursFromNow(-1),
+                end_date: hoursFromNow(2),
+                ...overrides,
+            }) as Cause;
 
         beforeEach(() => {
             volunteerRepository.findOneBy.mockResolvedValue({ id: 1 } as Volunteer);
-            causeRepository.findOneBy.mockResolvedValue({ id: 10, qr_code: 'QR-CAUSE-abc' } as Cause);
+            causeRepository.findOneBy.mockResolvedValue(inProgressCause());
             submissionRepository.existsBy.mockResolvedValue(true);
             attendanceRepository.existsBy.mockResolvedValue(false);
         });
@@ -165,6 +175,22 @@ describe('AttendanceService', () => {
         it('rethrows other database errors', async () => {
             manager.save.mockRejectedValueOnce(new Error('connection lost'));
             await expect(service.checkIn(7, dto)).rejects.toThrow('connection lost');
+        });
+
+        it('fails when the cause has not started yet', async () => {
+            causeRepository.findOneBy.mockResolvedValue(inProgressCause({ start_date: hoursFromNow(1) }));
+
+            await expect(service.checkIn(7, dto)).rejects.toThrow(CauseNotAvailableException);
+            expect(manager.save).not.toHaveBeenCalled();
+        });
+
+        it('fails when the cause has already ended', async () => {
+            causeRepository.findOneBy.mockResolvedValue(
+                inProgressCause({ start_date: hoursFromNow(-5), end_date: hoursFromNow(-1) }),
+            );
+
+            await expect(service.checkIn(7, dto)).rejects.toThrow(CauseNotAvailableException);
+            expect(manager.save).not.toHaveBeenCalled();
         });
 
         it('fails when the qr code does not match any cause', async () => {
