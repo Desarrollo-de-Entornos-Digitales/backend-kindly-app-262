@@ -9,7 +9,7 @@ import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { AttendanceService } from './attendance.service';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 
-@Controller('attendance')
+@Controller('attendances')
 export class AttendanceController {
     constructor(private readonly attendanceService: AttendanceService) {}
 
