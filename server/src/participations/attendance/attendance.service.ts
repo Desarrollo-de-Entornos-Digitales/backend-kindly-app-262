@@ -1,10 +1,17 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CauseNotFoundException, InvalidQrCodeException, OrganizerNotFoundException } from '../../common/exceptions';
+import {
+    CauseNotFoundException,
+    InvalidQrCodeException,
+    OrganizerNotFoundException,
+    VolunteerNotAcceptedException,
+} from '../../common/exceptions';
 import { Cause } from '../../causes/entities/cause.entity';
 import { Organizer } from '../../organizations/entities/organizer.entity';
 import { Volunteer } from '../../volunteers/entities/volunteer.entity';
+import { Submission } from '../entities/submission.entity';
+import { SubmissionStatus } from '../submission/submission-status.enum';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 
 @Injectable()
@@ -16,6 +23,8 @@ export class AttendanceService {
         private readonly organizerRepository: Repository<Organizer>,
         @InjectRepository(Volunteer)
         private readonly volunteerRepository: Repository<Volunteer>,
+        @InjectRepository(Submission)
+        private readonly submissionRepository: Repository<Submission>,
     ) {}
 
     async getCauseQrCode(causeId: number, userId: number): Promise<{ cause_id: number; qr_code: string }> {
@@ -44,6 +53,15 @@ export class AttendanceService {
         const cause = await this.causeRepository.findOneBy({ qr_code: createAttendanceDto.qr_code });
         if (!cause) {
             throw new InvalidQrCodeException();
+        }
+
+        const isAccepted = await this.submissionRepository.existsBy({
+            volunteer_id: volunteer.id,
+            cause_id: cause.id,
+            status: SubmissionStatus.ACCEPTED,
+        });
+        if (!isAccepted) {
+            throw new VolunteerNotAcceptedException();
         }
         return { cause_id: cause.id, volunteer_id: volunteer.id };
     }

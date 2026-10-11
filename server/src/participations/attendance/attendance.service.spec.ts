@@ -2,10 +2,17 @@ import { describe, beforeEach, it, expect, jest } from '@jest/globals';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { CauseNotFoundException, InvalidQrCodeException, OrganizerNotFoundException } from '../../common/exceptions';
+import {
+    CauseNotFoundException,
+    InvalidQrCodeException,
+    OrganizerNotFoundException,
+    VolunteerNotAcceptedException,
+} from '../../common/exceptions';
 import { Cause } from '../../causes/entities/cause.entity';
 import { Organizer } from '../../organizations/entities/organizer.entity';
 import { Volunteer } from '../../volunteers/entities/volunteer.entity';
+import { Submission } from '../entities/submission.entity';
+import { SubmissionStatus } from '../submission/submission-status.enum';
 import { AttendanceService } from './attendance.service';
 
 describe('AttendanceService', () => {
@@ -19,6 +26,9 @@ describe('AttendanceService', () => {
     const volunteerRepository = {
         findOneBy: jest.fn<(where: object) => Promise<Volunteer | null>>(),
     };
+    const submissionRepository = {
+        existsBy: jest.fn<(where: object) => Promise<boolean>>(),
+    };
 
     beforeEach(async () => {
         jest.clearAllMocks();
@@ -28,6 +38,7 @@ describe('AttendanceService', () => {
                 { provide: getRepositoryToken(Cause), useValue: causeRepository },
                 { provide: getRepositoryToken(Organizer), useValue: organizerRepository },
                 { provide: getRepositoryToken(Volunteer), useValue: volunteerRepository },
+                { provide: getRepositoryToken(Submission), useValue: submissionRepository },
             ],
         }).compile();
 
@@ -69,12 +80,27 @@ describe('AttendanceService', () => {
         beforeEach(() => {
             volunteerRepository.findOneBy.mockResolvedValue({ id: 1 } as Volunteer);
             causeRepository.findOneBy.mockResolvedValue({ id: 10, qr_code: 'QR-CAUSE-abc' } as Cause);
+            submissionRepository.existsBy.mockResolvedValue(true);
         });
 
         it('identifies the cause from the qr code and the volunteer from the jwt', async () => {
             await expect(service.checkIn(7, dto)).resolves.toEqual({ cause_id: 10, volunteer_id: 1 });
             expect(volunteerRepository.findOneBy).toHaveBeenCalledWith({ user_id: 7 });
             expect(causeRepository.findOneBy).toHaveBeenCalledWith({ qr_code: 'QR-CAUSE-abc' });
+        });
+
+        it('requires an accepted submission for the cause', async () => {
+            await service.checkIn(7, dto);
+            expect(submissionRepository.existsBy).toHaveBeenCalledWith({
+                volunteer_id: 1,
+                cause_id: 10,
+                status: SubmissionStatus.ACCEPTED,
+            });
+        });
+
+        it('fails when the volunteer was not accepted in the cause', async () => {
+            submissionRepository.existsBy.mockResolvedValue(false);
+            await expect(service.checkIn(7, dto)).rejects.toThrow(VolunteerNotAcceptedException);
         });
 
         it('fails when the qr code does not match any cause', async () => {
