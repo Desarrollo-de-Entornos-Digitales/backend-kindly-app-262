@@ -1,34 +1,46 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, ParseIntPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { VolunteerAchievementService } from './volunteer-achievement.service';
 import { CreateVolunteerAchievementDto } from './dto/create-volunteer-achievement.dto';
-import { UpdateVolunteerAchievementDto } from './dto/update-volunteer-achievement.dto';
 
 @Controller('volunteer-achievement')
 export class VolunteerAchievementController {
     constructor(private readonly volunteerAchievementService: VolunteerAchievementService) {}
 
     @Post()
-    create(@Body() createVolunteerAchievementDto: CreateVolunteerAchievementDto) {
-        return this.volunteerAchievementService.create(createVolunteerAchievementDto);
+    @HttpCode(HttpStatus.CREATED)
+    async create(@Body() createVolunteerAchievementDto: CreateVolunteerAchievementDto) {
+        return await this.volunteerAchievementService.create(createVolunteerAchievementDto);
     }
 
     @Get()
-    findAll() {
-        return this.volunteerAchievementService.findAll();
+    async findAll() {
+        return await this.volunteerAchievementService.findAll();
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.volunteerAchievementService.findOne(+id);
+    @Get('volunteer/:volunteerId')
+    async findByVolunteer(@Param('volunteerId', ParseIntPipe) volunteerId: number) {
+        return await this.volunteerAchievementService.findByVolunteer(volunteerId);
     }
 
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateVolunteerAchievementDto: UpdateVolunteerAchievementDto) {
-        return this.volunteerAchievementService.update(+id, updateVolunteerAchievementDto);
+    @Get('achievement/:achievementId')
+    async findByAchievement(@Param('achievementId', ParseIntPipe) achievementId: number) {
+        return await this.volunteerAchievementService.findByAchievement(achievementId);
     }
 
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.volunteerAchievementService.remove(+id);
+    @Get(':volunteerId/:achievementId')
+    async findOne(
+        @Param('volunteerId', ParseIntPipe) volunteerId: number,
+        @Param('achievementId', ParseIntPipe) achievementId: number,
+    ) {
+        return await this.volunteerAchievementService.findOne(volunteerId, achievementId);
+    }
+
+    @Delete(':volunteerId/:achievementId')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async remove(
+        @Param('volunteerId', ParseIntPipe) volunteerId: number,
+        @Param('achievementId', ParseIntPipe) achievementId: number,
+    ) {
+        await this.volunteerAchievementService.remove(volunteerId, achievementId);
     }
 }
