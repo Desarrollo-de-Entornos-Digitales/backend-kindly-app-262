@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, FindOptionsSelect, In, Repository } from 'typeorm';
 import {
@@ -7,9 +7,11 @@ import {
     CauseQuotaFullException,
     DuplicateSubmissionException,
     InvalidSubmissionStatusException,
+    OrganizerNotFoundException,
     SubmissionNotFoundException,
 } from '../../common/exceptions';
 import { Cause } from '../../causes/entities/cause.entity';
+import { Organizer } from '../../organizations/entities/organizer.entity';
 import { Volunteer } from '../../volunteers/entities/volunteer.entity';
 import { Submission } from '../entities/submission.entity';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
@@ -42,16 +44,15 @@ export class SubmissionService {
         private readonly causeRepository: Repository<Cause>,
         @InjectRepository(Volunteer)
         private readonly volunteerRepository: Repository<Volunteer>,
+        @InjectRepository(Organizer)
+        private readonly organizerRepository: Repository<Organizer>,
         private readonly dataSource: DataSource,
     ) {}
 
-    async create(createSubmissionDto: CreateSubmissionDto): Promise<Submission> {
-        const { volunteer_id, cause_id, justification } = createSubmissionDto;
+    async create(userId: number, createSubmissionDto: CreateSubmissionDto): Promise<Submission> {
+        const { cause_id, justification } = createSubmissionDto;
 
-        const volunteer = await this.volunteerRepository.findOneBy({ id: volunteer_id });
-        if (!volunteer) {
-            throw new NotFoundException(`Volunteer with identifier '${volunteer_id}' not found.`);
-        }
+        const volunteer_id = (await this.findVolunteerByUser(userId)).id;
 
         const cause = await this.causeRepository.findOneBy({ id: cause_id });
         if (!cause) {
@@ -84,20 +85,18 @@ export class SubmissionService {
         return this.submissionRepository.save(submission);
     }
 
-    findByVolunteer(volunteerId: number, filter: FilterSubmissionsDto): Promise<Submission[]> {
+    async findMine(userId: number, filter: FilterSubmissionsDto): Promise<Submission[]> {
+        const volunteer = await this.findVolunteerByUser(userId);
         return this.submissionRepository.find({
-            where: { volunteer_id: volunteerId, status: filter.status },
+            where: { volunteer_id: volunteer.id, status: filter.status },
             relations: { cause: true },
             select: { cause: CAUSE_SUMMARY },
             order: { created_at: 'DESC' },
         });
     }
 
-    async findByCause(causeId: number, filter: FilterSubmissionsDto): Promise<Submission[]> {
-        const causeExists = await this.causeRepository.existsBy({ id: causeId });
-        if (!causeExists) {
-            throw new CauseNotFoundException(causeId);
-        }
+    async findByCause(causeId: number, userId: number, filter: FilterSubmissionsDto): Promise<Submission[]> {
+        await this.assertCauseOwner(causeId, userId);
 
         return this.submissionRepository.find({
             where: { cause_id: causeId, status: filter.status },
@@ -107,7 +106,7 @@ export class SubmissionService {
         });
     }
 
-    async findOne(id: number): Promise<Submission> {
+    async findOne(id: number, userId: number, role: string): Promise<Submission> {
         const submission = await this.submissionRepository.findOne({
             where: { id },
             relations: { cause: true, volunteer: { user: true } },
@@ -116,12 +115,24 @@ export class SubmissionService {
         if (!submission) {
             throw new SubmissionNotFoundException(id);
         }
+
+        const canView =
+            role === 'organizer'
+                ? await this.causeRepository.existsBy({
+                      id: submission.cause_id,
+                      organizer_id: (await this.findOrganizerByUser(userId)).id,
+                  })
+                : submission.volunteer_id === (await this.findVolunteerByUser(userId)).id;
+        if (!canView) {
+            throw new ForbiddenException(`Submission with ID '${id}' does not belong to the current user.`);
+        }
         return submission;
     }
 
-    accept(id: number): Promise<Submission> {
+    accept(id: number, userId: number): Promise<Submission> {
         return this.dataSource.transaction(async (manager) => {
             const submission = await this.findPendingSubmission(manager, id);
+            await this.assertCauseOwner(submission.cause_id, userId);
 
             const cause = await manager.findOne(Cause, {
                 where: { id: submission.cause_id },
@@ -137,12 +148,40 @@ export class SubmissionService {
         });
     }
 
-    reject(id: number): Promise<Submission> {
+    reject(id: number, userId: number): Promise<Submission> {
         return this.dataSource.transaction(async (manager) => {
             const submission = await this.findPendingSubmission(manager, id);
+            await this.assertCauseOwner(submission.cause_id, userId);
             submission.status = SubmissionStatus.REJECTED;
             return manager.save(submission);
         });
+    }
+
+    private async findVolunteerByUser(userId: number): Promise<Volunteer> {
+        const volunteer = await this.volunteerRepository.findOneBy({ user_id: userId });
+        if (!volunteer) {
+            throw new NotFoundException(`Volunteer profile for user '${userId}' not found.`);
+        }
+        return volunteer;
+    }
+
+    private async findOrganizerByUser(userId: number): Promise<Organizer> {
+        const organizer = await this.organizerRepository.findOneBy({ user_id: userId });
+        if (!organizer) {
+            throw new OrganizerNotFoundException();
+        }
+        return organizer;
+    }
+
+    private async assertCauseOwner(causeId: number, userId: number): Promise<void> {
+        const cause = await this.causeRepository.findOneBy({ id: causeId });
+        if (!cause) {
+            throw new CauseNotFoundException(causeId);
+        }
+        const organizer = await this.findOrganizerByUser(userId);
+        if (cause.organizer_id !== organizer.id) {
+            throw new ForbiddenException(`Cause with ID '${causeId}' does not belong to the current organizer.`);
+        }
     }
 
     private async findPendingSubmission(manager: EntityManager, id: number): Promise<Submission> {
