@@ -9,6 +9,9 @@ export class Skill {
     @Column()
     name!: string;
 
+    @Column({ name: 'description', type: 'varchar', nullable: true, default: null })
+    description?: string | null;
+
     @OneToMany(() => VolunteerSkill, (volunteerSkill) => volunteerSkill.skill)
     volunteerSkills!: VolunteerSkill[];
 }
