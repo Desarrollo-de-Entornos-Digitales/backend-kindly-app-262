@@ -2,7 +2,7 @@ import { describe, beforeEach, it, expect, jest } from '@jest/globals';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { QueryFailedError } from 'typeorm';
+import { DataSource, EntityManager, QueryFailedError } from 'typeorm';
 import {
     CauseNotFoundException,
     DuplicateAttendanceException,
@@ -35,8 +35,16 @@ describe('AttendanceService', () => {
     const attendanceRepository = {
         existsBy: jest.fn<(where: object) => Promise<boolean>>(),
         create: jest.fn((data: Partial<Attendance>) => data as Attendance),
+    };
+    const manager = {
         save: jest.fn((attendance: Attendance) =>
             Promise.resolve({ ...attendance, checked_in_at: new Date('2026-10-11T10:00:00Z') }),
+        ),
+        increment: jest.fn<(...args: unknown[]) => Promise<unknown>>(() => Promise.resolve({})),
+    };
+    const dataSource = {
+        transaction: jest.fn((work: (m: EntityManager) => Promise<unknown>) =>
+            work(manager as unknown as EntityManager),
         ),
     };
 
@@ -50,6 +58,7 @@ describe('AttendanceService', () => {
                 { provide: getRepositoryToken(Volunteer), useValue: volunteerRepository },
                 { provide: getRepositoryToken(Submission), useValue: submissionRepository },
                 { provide: getRepositoryToken(Attendance), useValue: attendanceRepository },
+                { provide: DataSource, useValue: dataSource },
             ],
         }).compile();
 
@@ -113,7 +122,7 @@ describe('AttendanceService', () => {
         it('fails when the volunteer was not accepted in the cause', async () => {
             submissionRepository.existsBy.mockResolvedValue(false);
             await expect(service.checkIn(7, dto)).rejects.toThrow(VolunteerNotAcceptedException);
-            expect(attendanceRepository.save).not.toHaveBeenCalled();
+            expect(manager.save).not.toHaveBeenCalled();
         });
 
         it('registers the attendance with its check-in time', async () => {
@@ -127,23 +136,34 @@ describe('AttendanceService', () => {
             });
         });
 
+        it('adds one completed cause to the volunteer', async () => {
+            await service.checkIn(7, dto);
+            expect(manager.increment).toHaveBeenCalledWith(Volunteer, { id: 1 }, 'completed_causes', 1);
+        });
+
+        it('does not add a completed cause when the attendance is not saved', async () => {
+            manager.save.mockRejectedValueOnce(new Error('connection lost'));
+            await expect(service.checkIn(7, dto)).rejects.toThrow('connection lost');
+            expect(manager.increment).not.toHaveBeenCalled();
+        });
+
         it('fails when the attendance was already registered', async () => {
             attendanceRepository.existsBy.mockResolvedValue(true);
 
             await expect(service.checkIn(7, dto)).rejects.toThrow(DuplicateAttendanceException);
             expect(attendanceRepository.existsBy).toHaveBeenCalledWith({ cause_id: 10, volunteer_id: 1 });
-            expect(attendanceRepository.save).not.toHaveBeenCalled();
+            expect(manager.save).not.toHaveBeenCalled();
         });
 
         it('fails when a simultaneous check-in already saved the attendance', async () => {
-            attendanceRepository.save.mockRejectedValueOnce(
+            manager.save.mockRejectedValueOnce(
                 new QueryFailedError('INSERT', [], Object.assign(new Error('duplicate key'), { code: '23505' })),
             );
             await expect(service.checkIn(7, dto)).rejects.toThrow(DuplicateAttendanceException);
         });
 
         it('rethrows other database errors', async () => {
-            attendanceRepository.save.mockRejectedValueOnce(new Error('connection lost'));
+            manager.save.mockRejectedValueOnce(new Error('connection lost'));
             await expect(service.checkIn(7, dto)).rejects.toThrow('connection lost');
         });
 

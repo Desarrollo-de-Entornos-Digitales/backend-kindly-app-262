@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
 import {
     CauseNotFoundException,
     DuplicateAttendanceException,
@@ -29,6 +29,7 @@ export class AttendanceService {
         private readonly submissionRepository: Repository<Submission>,
         @InjectRepository(Attendance)
         private readonly attendanceRepository: Repository<Attendance>,
+        private readonly dataSource: DataSource,
     ) {}
 
     async getCauseQrCode(causeId: number, userId: number): Promise<{ cause_id: number; qr_code: string }> {
@@ -75,7 +76,11 @@ export class AttendanceService {
 
         const attendance = this.attendanceRepository.create({ cause_id: cause.id, volunteer_id: volunteer.id });
         try {
-            return await this.attendanceRepository.save(attendance);
+            return await this.dataSource.transaction(async (manager) => {
+                const saved = await manager.save(attendance);
+                await manager.increment(Volunteer, { id: volunteer.id }, 'completed_causes', 1);
+                return saved;
+            });
         } catch (error) {
             if (error instanceof QueryFailedError && (error.driverError as { code?: string }).code === '23505') {
                 throw new DuplicateAttendanceException();
