@@ -2,8 +2,10 @@ import { describe, beforeEach, it, expect, jest } from '@jest/globals';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { QueryFailedError } from 'typeorm';
 import {
     CauseNotFoundException,
+    DuplicateAttendanceException,
     InvalidQrCodeException,
     OrganizerNotFoundException,
     VolunteerNotAcceptedException,
@@ -31,6 +33,7 @@ describe('AttendanceService', () => {
         existsBy: jest.fn<(where: object) => Promise<boolean>>(),
     };
     const attendanceRepository = {
+        existsBy: jest.fn<(where: object) => Promise<boolean>>(),
         create: jest.fn((data: Partial<Attendance>) => data as Attendance),
         save: jest.fn((attendance: Attendance) =>
             Promise.resolve({ ...attendance, checked_in_at: new Date('2026-10-11T10:00:00Z') }),
@@ -89,6 +92,7 @@ describe('AttendanceService', () => {
             volunteerRepository.findOneBy.mockResolvedValue({ id: 1 } as Volunteer);
             causeRepository.findOneBy.mockResolvedValue({ id: 10, qr_code: 'QR-CAUSE-abc' } as Cause);
             submissionRepository.existsBy.mockResolvedValue(true);
+            attendanceRepository.existsBy.mockResolvedValue(false);
         });
 
         it('identifies the cause from the qr code and the volunteer from the jwt', async () => {
@@ -121,6 +125,26 @@ describe('AttendanceService', () => {
                 volunteer_id: 1,
                 checked_in_at: new Date('2026-10-11T10:00:00Z'),
             });
+        });
+
+        it('fails when the attendance was already registered', async () => {
+            attendanceRepository.existsBy.mockResolvedValue(true);
+
+            await expect(service.checkIn(7, dto)).rejects.toThrow(DuplicateAttendanceException);
+            expect(attendanceRepository.existsBy).toHaveBeenCalledWith({ cause_id: 10, volunteer_id: 1 });
+            expect(attendanceRepository.save).not.toHaveBeenCalled();
+        });
+
+        it('fails when a simultaneous check-in already saved the attendance', async () => {
+            attendanceRepository.save.mockRejectedValueOnce(
+                new QueryFailedError('INSERT', [], Object.assign(new Error('duplicate key'), { code: '23505' })),
+            );
+            await expect(service.checkIn(7, dto)).rejects.toThrow(DuplicateAttendanceException);
+        });
+
+        it('rethrows other database errors', async () => {
+            attendanceRepository.save.mockRejectedValueOnce(new Error('connection lost'));
+            await expect(service.checkIn(7, dto)).rejects.toThrow('connection lost');
         });
 
         it('fails when the qr code does not match any cause', async () => {

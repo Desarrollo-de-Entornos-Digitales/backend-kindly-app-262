@@ -1,8 +1,9 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import {
     CauseNotFoundException,
+    DuplicateAttendanceException,
     InvalidQrCodeException,
     OrganizerNotFoundException,
     VolunteerNotAcceptedException,
@@ -64,7 +65,22 @@ export class AttendanceService {
             throw new VolunteerNotAcceptedException();
         }
 
+        const alreadyCheckedIn = await this.attendanceRepository.existsBy({
+            cause_id: cause.id,
+            volunteer_id: volunteer.id,
+        });
+        if (alreadyCheckedIn) {
+            throw new DuplicateAttendanceException();
+        }
+
         const attendance = this.attendanceRepository.create({ cause_id: cause.id, volunteer_id: volunteer.id });
-        return this.attendanceRepository.save(attendance);
+        try {
+            return await this.attendanceRepository.save(attendance);
+        } catch (error) {
+            if (error instanceof QueryFailedError && (error.driverError as { code?: string }).code === '23505') {
+                throw new DuplicateAttendanceException();
+            }
+            throw error;
+        }
     }
 }
