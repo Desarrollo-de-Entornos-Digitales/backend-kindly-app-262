@@ -9,6 +9,7 @@ import { Cause } from './entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Category } from '../volunteers/entities/category.entity';
 import { Submission } from '../participations/entities/submission.entity';
+import { generateCauseQrCode } from '../participations/attendance/qr-code.util';
 import {
     OrganizerNotFoundException,
     OrganizationNotVerifiedException,
@@ -66,7 +67,7 @@ export class CausesService {
             category,
             is_available: false,
             progress: 'open',
-            qr_code: `QR-CAUSE-${Date.now()}`,
+            qr_code: generateCauseQrCode(),
         });
 
         return await this.causeRepository.save(cause);
