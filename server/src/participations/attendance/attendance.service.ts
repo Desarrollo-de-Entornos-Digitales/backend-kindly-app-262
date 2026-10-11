@@ -1,9 +1,10 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { CauseNotFoundException, OrganizerNotFoundException } from '../../common/exceptions';
+import { CauseNotFoundException, InvalidQrCodeException, OrganizerNotFoundException } from '../../common/exceptions';
 import { Cause } from '../../causes/entities/cause.entity';
 import { Organizer } from '../../organizations/entities/organizer.entity';
+import { Volunteer } from '../../volunteers/entities/volunteer.entity';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 
 @Injectable()
@@ -13,6 +14,8 @@ export class AttendanceService {
         private readonly causeRepository: Repository<Cause>,
         @InjectRepository(Organizer)
         private readonly organizerRepository: Repository<Organizer>,
+        @InjectRepository(Volunteer)
+        private readonly volunteerRepository: Repository<Volunteer>,
     ) {}
 
     async getCauseQrCode(causeId: number, userId: number): Promise<{ cause_id: number; qr_code: string }> {
@@ -30,19 +33,18 @@ export class AttendanceService {
         return { cause_id: cause.id, qr_code: cause.qr_code };
     }
 
-    create(_createAttendanceDto: CreateAttendanceDto) {
-        return 'This action adds a new attendance';
-    }
-
-    findAll() {
-        return `This action returns all attendance`;
-    }
-
-    findOne(id: number) {
-        return `This action returns a #${id} attendance`;
-    }
-
-    remove(id: number) {
-        return `This action removes a #${id} attendance`;
+    async checkIn(
+        userId: number,
+        createAttendanceDto: CreateAttendanceDto,
+    ): Promise<{ cause_id: number; volunteer_id: number }> {
+        const volunteer = await this.volunteerRepository.findOneBy({ user_id: userId });
+        if (!volunteer) {
+            throw new NotFoundException(`Volunteer profile for user '${userId}' not found.`);
+        }
+        const cause = await this.causeRepository.findOneBy({ qr_code: createAttendanceDto.qr_code });
+        if (!cause) {
+            throw new InvalidQrCodeException();
+        }
+        return { cause_id: cause.id, volunteer_id: volunteer.id };
     }
 }

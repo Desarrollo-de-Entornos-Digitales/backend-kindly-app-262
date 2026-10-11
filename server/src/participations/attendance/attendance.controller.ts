@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
 import { PositiveIntPipe } from '../../common/pipes/positive-int.pipe';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -21,23 +21,11 @@ export class AttendanceController {
         return this.attendanceService.getCauseQrCode(causeId, userId);
     }
 
-    @Post()
-    create(@Body() createAttendanceDto: CreateAttendanceDto) {
-        return this.attendanceService.create(createAttendanceDto);
-    }
-
-    @Get()
-    findAll() {
-        return this.attendanceService.findAll();
-    }
-
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.attendanceService.findOne(+id);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.attendanceService.remove(+id);
+    @Post('check-in')
+    @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+    @Roles('volunteer')
+    @Permissions('participate_causes')
+    checkIn(@CurrentUser('id') userId: number, @Body() createAttendanceDto: CreateAttendanceDto) {
+        return this.attendanceService.checkIn(userId, createAttendanceDto);
     }
 }
