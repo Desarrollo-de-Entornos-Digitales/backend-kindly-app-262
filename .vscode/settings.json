@@ -1,7 +1,0 @@
-{
-  "eslint.workingDirectories": [
-    "./server"
-  ],
-  "typescript.tsdk": "server/node_modules/typescript/lib"
-}
-
