@@ -1,34 +1,37 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Query, ParseIntPipe, HttpCode, HttpStatus } from '@nestjs/common';
 import { VolunteerCategoryService } from './volunteer-category.service';
 import { CreateVolunteerCategoryDto } from './dto/create-volunteer-category.dto';
-import { UpdateVolunteerCategoryDto } from './dto/update-volunteer-category.dto';
 
-@Controller('volunteer-category')
+@Controller(['volunteer-categories', 'volunteer-category'])
 export class VolunteerCategoryController {
     constructor(private readonly volunteerCategoryService: VolunteerCategoryService) {}
 
     @Post()
-    create(@Body() createVolunteerCategoryDto: CreateVolunteerCategoryDto) {
-        return this.volunteerCategoryService.create(createVolunteerCategoryDto);
+    @HttpCode(HttpStatus.CREATED)
+    async create(@Body() createVolunteerCategoryDto: CreateVolunteerCategoryDto) {
+        return await this.volunteerCategoryService.create(createVolunteerCategoryDto);
     }
 
     @Get()
-    findAll() {
-        return this.volunteerCategoryService.findAll();
+    async findAll(@Query('volunteer_id') volunteerId?: string) {
+        const parsedId = volunteerId ? parseInt(volunteerId, 10) : undefined;
+        return await this.volunteerCategoryService.findAll(parsedId);
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.volunteerCategoryService.findOne(+id);
+    @Get(':volunteerId/:categoryId')
+    async findOne(
+        @Param('volunteerId', ParseIntPipe) volunteerId: number,
+        @Param('categoryId', ParseIntPipe) categoryId: number,
+    ) {
+        return await this.volunteerCategoryService.findOne(volunteerId, categoryId);
     }
 
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateVolunteerCategoryDto: UpdateVolunteerCategoryDto) {
-        return this.volunteerCategoryService.update(+id, updateVolunteerCategoryDto);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.volunteerCategoryService.remove(+id);
+    @Delete(':volunteerId/:categoryId')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async remove(
+        @Param('volunteerId', ParseIntPipe) volunteerId: number,
+        @Param('categoryId', ParseIntPipe) categoryId: number,
+    ) {
+        await this.volunteerCategoryService.remove(volunteerId, categoryId);
     }
 }
