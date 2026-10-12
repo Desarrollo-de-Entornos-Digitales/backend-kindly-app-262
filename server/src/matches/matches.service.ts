@@ -1,26 +1,159 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, Repository } from 'typeorm';
+import { Cause } from '../causes/entities/cause.entity';
+import { Volunteer } from '../volunteers/entities/volunteer.entity';
+import { Submission } from '../participations/entities/submission.entity';
+import { SubmissionService } from '../participations/submission/submission.service';
+import { SubmissionStatus } from '../participations/submission/submission-status.enum';
+import { CauseNotFoundException } from '../common/exceptions';
+import { CauseCardDto } from './dto/cause-card.dto';
+import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
-import { UpdateMatchDto } from './dto/update-match.dto';
+import { DismissMatchDto } from './dto/dismiss-match.dto';
 
 @Injectable()
 export class MatchesService {
-    create(_createMatchDto: CreateMatchDto) {
-        return 'This action adds a new match';
+    constructor(
+        @InjectRepository(Cause)
+        private readonly causeRepository: Repository<Cause>,
+        @InjectRepository(Volunteer)
+        private readonly volunteerRepository: Repository<Volunteer>,
+        @InjectRepository(Submission)
+        private readonly submissionRepository: Repository<Submission>,
+        private readonly submissionService: SubmissionService,
+    ) {}
+
+    async getDeck(user: any, queryDto?: GetDeckQueryDto): Promise<CauseCardDto[]> {
+        const volunteer = await this.volunteerRepository.findOne({
+            where: { user_id: user?.id },
+        });
+
+        if (!volunteer) {
+            throw new NotFoundException(`Volunteer profile not found for user ID '${user?.id}'.`);
+        }
+
+        const volunteerSubmissions = await this.submissionRepository.find({
+            where: {
+                volunteer_id: volunteer.id,
+                status: In([SubmissionStatus.PENDING, SubmissionStatus.ACCEPTED]),
+            },
+            select: ['cause_id'],
+        });
+
+        const excludedCauseIds = volunteerSubmissions.map((s) => s.cause_id);
+
+        const now = new Date();
+        const queryBuilder = this.causeRepository
+            .createQueryBuilder('cause')
+            .leftJoinAndSelect('cause.organizer', 'organizer')
+            .leftJoinAndSelect('cause.category', 'category')
+            .where('cause.is_available = :isAvailable', { isAvailable: true })
+            .andWhere('cause.progress = :progress', { progress: 'open' })
+            .andWhere('cause.end_date >= :now', { now });
+
+        if (excludedCauseIds.length > 0) {
+            queryBuilder.andWhere('cause.id NOT IN (:...excludedCauseIds)', { excludedCauseIds });
+        }
+
+        queryBuilder.orderBy('cause.start_date', 'ASC');
+        queryBuilder.addOrderBy('cause.id', 'ASC');
+
+        const candidateCauses = await queryBuilder.getMany();
+
+        const candidateCauseIds = candidateCauses.map((c) => c.id);
+        const occupiedMap = new Map<number, number>();
+
+        if (candidateCauseIds.length > 0) {
+            const occupiedCounts = await this.submissionRepository
+                .createQueryBuilder('submission')
+                .select('submission.cause_id', 'cause_id')
+                .addSelect('COUNT(submission.id)', 'count')
+                .where('submission.cause_id IN (:...candidateCauseIds)', { candidateCauseIds })
+                .andWhere('LOWER(submission.status) IN (:...statuses)', { statuses: ['approved', 'accepted'] })
+                .groupBy('submission.cause_id')
+                .getRawMany<{ cause_id: number; count: string | number }>();
+
+            for (const row of occupiedCounts) {
+                occupiedMap.set(Number(row.cause_id), Number(row.count));
+            }
+        }
+
+        const limit = queryDto?.limit ?? 10;
+        const page = queryDto?.page ?? 1;
+        const startIndex = (page - 1) * limit;
+
+        const eligibleCards: CauseCardDto[] = [];
+
+        for (const cause of candidateCauses) {
+            const occupied = occupiedMap.get(cause.id) ?? 0;
+
+            const hasCapacity = cause.capacity !== null && cause.capacity !== undefined;
+            const capacity = hasCapacity ? cause.capacity : null;
+            const isFull = hasCapacity ? occupied >= capacity! : false;
+
+            if (isFull) {
+                continue;
+            }
+
+            const spotsAvailable = hasCapacity ? Math.max(0, capacity! - occupied) : null;
+
+            eligibleCards.push({
+                id: cause.id,
+                title: cause.title,
+                description: cause.description,
+                cover_image_url: cause.cover_image_url,
+                organization: {
+                    id: cause.organizer?.id,
+                    name: cause.organizer?.name,
+                    verification_status: cause.organizer?.verification_status,
+                    is_verified: cause.organizer?.verification_status?.toLowerCase() === 'verified',
+                },
+                category: {
+                    id: cause.category?.id,
+                    name: cause.category?.name,
+                },
+                start_date: cause.start_date,
+                end_date: cause.end_date,
+                location: {
+                    address: cause.address,
+                    latitude: cause.location_latitude,
+                    longitude: cause.location_longitude,
+                },
+                capacity,
+                spots_available: spotsAvailable,
+                occupied_spots: occupied,
+                is_full: false,
+            });
+        }
+
+        return eligibleCards.slice(startIndex, startIndex + limit);
     }
 
-    findAll() {
-        return `This action returns all matches`;
+    async match(userId: number, createMatchDto: CreateMatchDto): Promise<Submission> {
+        const justification =
+            createMatchDto.justification && createMatchDto.justification.trim().length > 0
+                ? createMatchDto.justification
+                : 'Automatically generated application through Kindly Match.';
+
+        return this.submissionService.create(userId, {
+            cause_id: createMatchDto.cause_id,
+            justification,
+        });
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} match`;
-    }
+    async dismiss(
+        _userId: number,
+        dismissMatchDto: DismissMatchDto,
+    ): Promise<{ dismissed: boolean; cause_id: number }> {
+        const cause = await this.causeRepository.findOneBy({ id: dismissMatchDto.cause_id });
+        if (!cause) {
+            throw new CauseNotFoundException(dismissMatchDto.cause_id);
+        }
 
-    update(id: number, _updateMatchDto: UpdateMatchDto) {
-        return `This action updates a #${id} match`;
-    }
-
-    remove(id: number) {
-        return `This action removes a #${id} match`;
+        return {
+            dismissed: true,
+            cause_id: dismissMatchDto.cause_id,
+        };
     }
 }
