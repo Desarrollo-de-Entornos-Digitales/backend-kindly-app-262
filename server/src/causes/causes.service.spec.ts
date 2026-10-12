@@ -1183,4 +1183,70 @@ describe('CausesService', () => {
             expect(transformedCompleted).toEqual({ progress: 'completed' });
         });
     });
+
+    describe('CRUD stubs and edge cases', () => {
+        it('82. should return all causes message from findAll stub', () => {
+            expect(service.findAll()).toBe('This action returns all causes');
+        });
+
+        it('83. should return single cause message from findOne stub', () => {
+            expect(service.findOne(5)).toBe('This action returns a #5 cause');
+        });
+
+        it('84. should return remove cause message from remove stub', () => {
+            expect(service.remove(5)).toBe('This action removes a #5 cause');
+        });
+
+        it('85. should update location_longitude when specified in UpdateCauseDto', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({ ...mockCause });
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.update(1, 1, { location_longitude: '-75.5678' });
+            expect(result.location_longitude).toBe('-75.5678');
+        });
+
+        it('86. should calculate zero capacity correctly as full', async () => {
+            const zeroCapacityCause = { ...mockCause, capacity: 0 };
+            (causeRepository.findOne as any).mockResolvedValue(zeroCapacityCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(0);
+
+            const result = await service.getCapacity(1, 1);
+            expect(result.capacity).toBe(0);
+            expect(result.available).toBe(0);
+            expect(result.is_full).toBe(true);
+            expect(result.status_display).toBe('0/0 spots filled');
+        });
+
+        it('87. should calculate null capacity (no limit) correctly', async () => {
+            const noLimitCause = { ...mockCause, capacity: null };
+            (causeRepository.findOne as any).mockResolvedValue(noLimitCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(7);
+
+            const result = await service.getCapacity(1, 1);
+            expect(result.capacity).toBeNull();
+            expect(result.available).toBeNull();
+            expect(result.is_full).toBe(false);
+            expect(result.status_display).toBe('7 volunteers (no limit)');
+        });
+
+        it('88. should evaluate Raw SQL status callback in getCapacity count query', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockImplementation((opts: any) => {
+                const statusOp = opts?.where?.status;
+                if (statusOp) {
+                    if (typeof statusOp._sql === 'function') statusOp._sql('submission.status');
+                    if (typeof statusOp._value === 'function') statusOp._value('submission.status');
+                    if (typeof statusOp.value === 'function') statusOp.value('submission.status');
+                    if (typeof statusOp.getSql === 'function') statusOp.getSql('submission.status');
+                }
+                return Promise.resolve(5);
+            });
+
+            const result = await service.getCapacity(1, 1);
+            expect(result.occupied).toBe(5);
+        });
+    });
 });
