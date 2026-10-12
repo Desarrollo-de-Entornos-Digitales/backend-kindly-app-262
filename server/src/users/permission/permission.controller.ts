@@ -10,12 +10,18 @@ import {
     NotFoundException,
     HttpCode,
     HttpStatus,
+    UseGuards,
 } from '@nestjs/common';
 import { PermissionService } from './permission.service';
 import { CreatePermissionDto } from './dto/create-permission.dto';
 import { UpdatePermissionDto } from './dto/update-permission.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 
 @Controller('permission')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class PermissionController {
     constructor(private readonly permissionService: PermissionService) {}
 

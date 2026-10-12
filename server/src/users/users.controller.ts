@@ -2,11 +2,14 @@ import {
     Controller,
     Get,
     Patch,
+    Delete,
     Param,
     Body,
     Query,
     ParseIntPipe,
     UseGuards,
+    HttpCode,
+    HttpStatus,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { QueryUsersDto } from './dto/query-users.dto';
@@ -33,18 +36,18 @@ export class UsersController {
     }
 
     @Patch(':id/status')
-    async updateStatus(
-        @Param('id', ParseIntPipe) id: number,
-        @Body() updateUserStatusDto: UpdateUserStatusDto,
-    ) {
+    async updateStatus(@Param('id', ParseIntPipe) id: number, @Body() updateUserStatusDto: UpdateUserStatusDto) {
         return await this.usersService.updateStatus(id, updateUserStatusDto);
     }
 
     @Patch(':id/role')
-    async assignRole(
-        @Param('id', ParseIntPipe) id: number,
-        @Body() assignRoleDto: AssignRoleDto,
-    ) {
+    async assignRole(@Param('id', ParseIntPipe) id: number, @Body() assignRoleDto: AssignRoleDto) {
         return await this.usersService.assignRole(id, assignRoleDto);
+    }
+
+    @Delete(':id')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async remove(@Param('id', ParseIntPipe) id: number) {
+        await this.usersService.remove(id);
     }
 }

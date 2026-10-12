@@ -25,12 +25,6 @@ import { AuthModule } from '../auth/auth.module';
     ],
     controllers: [UsersController],
     providers: [UsersService],
-    exports: [
-        UsersService,
-        UserModule,
-        RoleModule,
-        PermissionModule,
-        RolePermissionModule,
-    ],
+    exports: [UsersService, UserModule, RoleModule, PermissionModule, RolePermissionModule],
 })
 export class UsersModule {}

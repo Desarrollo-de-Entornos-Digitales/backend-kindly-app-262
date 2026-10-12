@@ -10,14 +10,20 @@ import {
     NotFoundException,
     HttpCode,
     HttpStatus,
+    UseGuards,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserStatusDto } from '../dto/update-user-status.dto';
 import { AssignRoleDto } from '../dto/assign-role.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 
 @Controller('user')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class UserController {
     constructor(private readonly userService: UserService) {}
 

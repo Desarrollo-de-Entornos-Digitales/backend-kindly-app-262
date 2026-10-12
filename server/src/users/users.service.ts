@@ -132,4 +132,16 @@ export class UsersService {
         const { password: _, ...userWithoutPassword } = savedUser;
         return userWithoutPassword;
     }
+
+    async remove(id: number): Promise<void> {
+        const user = await this.userRepository.findOne({
+            where: { id },
+        });
+
+        if (!user) {
+            throw new UserNotFoundException(id);
+        }
+
+        await this.userRepository.remove(user);
+    }
 }
