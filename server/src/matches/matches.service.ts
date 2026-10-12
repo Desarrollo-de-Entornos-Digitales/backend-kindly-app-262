@@ -12,6 +12,7 @@ import { CausePinDto } from './dto/cause-pin.dto';
 import { NearbyCausePinDto } from './dto/nearby-cause-pin.dto';
 import { NearbyCausesQueryDto } from './dto/nearby-causes-query.dto';
 import { MapAreaQueryDto } from './dto/map-area-query.dto';
+import { ForYouCardDto } from './dto/for-you-card.dto';
 import { distanceInKm } from './geo.util';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
@@ -91,6 +92,62 @@ export class MatchesService {
         }
 
         return eligibleCards.slice(startIndex, startIndex + limit);
+    }
+
+    async getForYouFeed(userId: number, queryDto?: GetDeckQueryDto): Promise<ForYouCardDto[]> {
+        const volunteer = await this.volunteerRepository.findOne({
+            where: { user_id: userId },
+            relations: { volunteerCategories: true },
+        });
+
+        if (!volunteer) {
+            throw new NotFoundException(`Volunteer profile not found for user ID '${userId}'.`);
+        }
+
+        const interestCategoryIds = new Set(
+            (volunteer.volunteerCategories ?? []).map((volunteerCategory) => volunteerCategory.category_id),
+        );
+
+        const activeSubmissions = await this.submissionRepository.find({
+            where: {
+                volunteer_id: volunteer.id,
+                status: In([SubmissionStatus.PENDING, SubmissionStatus.ACCEPTED]),
+            },
+            select: ['cause_id'],
+        });
+        const excludedCauseIds = activeSubmissions.map((submission) => submission.cause_id);
+
+        const queryBuilder = this.causeRepository
+            .createQueryBuilder('cause')
+            .leftJoinAndSelect('cause.organizer', 'organizer')
+            .leftJoinAndSelect('cause.category', 'category')
+            .where('cause.is_available = :isAvailable', { isAvailable: true })
+            .andWhere('cause.progress = :progress', { progress: 'open' })
+            .andWhere('cause.end_date >= :now', { now: new Date() });
+
+        if (excludedCauseIds.length > 0) {
+            queryBuilder.andWhere('cause.id NOT IN (:...excludedCauseIds)', { excludedCauseIds });
+        }
+
+        const upcomingCauses = await queryBuilder
+            .orderBy('cause.start_date', 'ASC')
+            .addOrderBy('cause.id', 'ASC')
+            .getMany();
+        const occupiedMap = await this.countOccupiedSpots(upcomingCauses.map((cause) => cause.id));
+
+        const cards = upcomingCauses
+            .map((cause) => ({
+                ...this.buildCauseCard(cause, occupiedMap.get(cause.id) ?? 0),
+                affinity_score: interestCategoryIds.has(cause.category_id) ? 1 : 0,
+            }))
+            .filter((card) => !card.is_full)
+            .sort((a, b) => b.affinity_score - a.affinity_score);
+
+        const limit = queryDto?.limit ?? 10;
+        const page = queryDto?.page ?? 1;
+        const startIndex = (page - 1) * limit;
+
+        return cards.slice(startIndex, startIndex + limit);
     }
 
     async getNearbyPins(queryDto: NearbyCausesQueryDto): Promise<NearbyCausePinDto[]> {

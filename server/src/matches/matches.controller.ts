@@ -47,6 +47,13 @@ export class MatchesController {
         return this.matchesService.getMapPins();
     }
 
+    @Get('for-you')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('volunteer')
+    getForYouFeed(@CurrentUser('id') userId: number, @Query() queryDto?: GetDeckQueryDto) {
+        return this.matchesService.getForYouFeed(userId, queryDto);
+    }
+
     @Get('map/nearby')
     @UseGuards(JwtAuthGuard, RolesGuard)
     @Roles('volunteer')
