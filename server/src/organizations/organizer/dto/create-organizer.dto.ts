@@ -13,15 +13,10 @@ export class CreateOrganizerDto {
     @IsBoolean({ message: 'is_organization must be a boolean' })
     is_organization!: boolean;
 
-    // Obligatorio para TODOS los organizadores (persona natural u organización)
     @IsInt({ message: 'organization_type_id must be an integer' })
     @IsPositive({ message: 'organization_type_id must be a positive number' })
     @Type(() => Number)
     organization_type_id!: number;
-
-    // =========================================================================
-    // Campos obligatorios ÚNICAMENTE si se declara como organización (is_organization: true)
-    // =========================================================================
 
     @ValidateIf((o: CreateOrganizerDto) => o.is_organization === true)
     @IsNotEmpty({ message: 'website is required for organizations' })
