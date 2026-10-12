@@ -1,9 +1,26 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    Delete,
+    ParseIntPipe,
+    HttpCode,
+    HttpStatus,
+    UseGuards,
+} from '@nestjs/common';
 import { VolunteerService } from './volunteer.service';
 import { CreateVolunteerDto } from './dto/create-volunteer.dto';
 import { UpdateVolunteerDto } from './dto/update-volunteer.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 
 @Controller('volunteer')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class VolunteerController {
     constructor(private readonly volunteerService: VolunteerService) {}
 

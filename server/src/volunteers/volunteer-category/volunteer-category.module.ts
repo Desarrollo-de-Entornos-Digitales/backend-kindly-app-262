@@ -5,9 +5,10 @@ import { VolunteerCategoryController } from './volunteer-category.controller';
 import { VolunteerCategory } from '../entities/volunteer-category.entity';
 import { Volunteer } from '../entities/volunteer.entity';
 import { Category } from '../entities/category.entity';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([VolunteerCategory, Volunteer, Category])],
+    imports: [TypeOrmModule.forFeature([VolunteerCategory, Volunteer, Category]), AuthModule],
     controllers: [VolunteerCategoryController],
     providers: [VolunteerCategoryService],
     exports: [VolunteerCategoryService],

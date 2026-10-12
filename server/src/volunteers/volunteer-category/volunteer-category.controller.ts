@@ -1,8 +1,25 @@
-import { Controller, Get, Post, Body, Param, Delete, Query, ParseIntPipe, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Param,
+    Delete,
+    Query,
+    ParseIntPipe,
+    HttpCode,
+    HttpStatus,
+    UseGuards,
+} from '@nestjs/common';
 import { VolunteerCategoryService } from './volunteer-category.service';
 import { CreateVolunteerCategoryDto } from './dto/create-volunteer-category.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 
 @Controller(['volunteer-categories', 'volunteer-category'])
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('volunteer', 'admin')
 export class VolunteerCategoryController {
     constructor(private readonly volunteerCategoryService: VolunteerCategoryService) {}
 
