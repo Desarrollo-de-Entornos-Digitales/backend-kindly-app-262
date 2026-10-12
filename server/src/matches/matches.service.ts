@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Raw, Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Cause } from '../causes/entities/cause.entity';
 import { Volunteer } from '../volunteers/entities/volunteer.entity';
 import { Submission } from '../participations/entities/submission.entity';
 import { SubmissionService } from '../participations/submission/submission.service';
+import { SubmissionStatus } from '../participations/submission/submission-status.enum';
 import { CauseNotFoundException } from '../common/exceptions';
 import { CauseCardDto } from './dto/cause-card.dto';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
@@ -33,7 +34,10 @@ export class MatchesService {
         }
 
         const volunteerSubmissions = await this.submissionRepository.find({
-            where: { volunteer_id: volunteer.id },
+            where: {
+                volunteer_id: volunteer.id,
+                status: In([SubmissionStatus.PENDING, SubmissionStatus.ACCEPTED]),
+            },
             select: ['cause_id'],
         });
 
@@ -57,6 +61,24 @@ export class MatchesService {
 
         const candidateCauses = await queryBuilder.getMany();
 
+        const candidateCauseIds = candidateCauses.map((c) => c.id);
+        const occupiedMap = new Map<number, number>();
+
+        if (candidateCauseIds.length > 0) {
+            const occupiedCounts = await this.submissionRepository
+                .createQueryBuilder('submission')
+                .select('submission.cause_id', 'cause_id')
+                .addSelect('COUNT(submission.id)', 'count')
+                .where('submission.cause_id IN (:...candidateCauseIds)', { candidateCauseIds })
+                .andWhere('LOWER(submission.status) IN (:...statuses)', { statuses: ['approved', 'accepted'] })
+                .groupBy('submission.cause_id')
+                .getRawMany<{ cause_id: number; count: string | number }>();
+
+            for (const row of occupiedCounts) {
+                occupiedMap.set(Number(row.cause_id), Number(row.count));
+            }
+        }
+
         const limit = queryDto?.limit ?? 10;
         const page = queryDto?.page ?? 1;
         const startIndex = (page - 1) * limit;
@@ -64,12 +86,7 @@ export class MatchesService {
         const eligibleCards: CauseCardDto[] = [];
 
         for (const cause of candidateCauses) {
-            const occupied = await this.submissionRepository.count({
-                where: {
-                    cause_id: cause.id,
-                    status: Raw((alias) => `LOWER(${alias}) IN ('approved', 'accepted')`),
-                },
-            });
+            const occupied = occupiedMap.get(cause.id) ?? 0;
 
             const hasCapacity = cause.capacity !== null && cause.capacity !== undefined;
             const capacity = hasCapacity ? cause.capacity : null;
@@ -117,7 +134,7 @@ export class MatchesService {
         const justification =
             createMatchDto.justification && createMatchDto.justification.trim().length > 0
                 ? createMatchDto.justification
-                : 'Postulación generada automáticamente mediante Match en Kindly.';
+                : 'Automatically generated application through Kindly Match.';
 
         return this.submissionService.create(userId, {
             cause_id: createMatchDto.cause_id,

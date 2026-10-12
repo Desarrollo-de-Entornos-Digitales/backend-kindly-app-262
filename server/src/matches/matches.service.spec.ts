@@ -2,13 +2,16 @@ import { describe, beforeEach, it, expect, jest } from '@jest/globals';
 import { BadRequestException, NotFoundException, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In } from 'typeorm';
 import { MatchesService } from './matches.service';
 import { Cause } from '../causes/entities/cause.entity';
 import { Volunteer } from '../volunteers/entities/volunteer.entity';
 import { Submission } from '../participations/entities/submission.entity';
 import { SubmissionService } from '../participations/submission/submission.service';
 import { SubmissionStatus } from '../participations/submission/submission-status.enum';
+import { Organizer } from '../organizations/entities/organizer.entity';
+import { Category } from '../volunteers/entities/category.entity';
+import { User } from '../users/entities/user.entity';
 import {
     CauseNotAvailableException,
     CauseNotFoundException,
@@ -21,11 +24,40 @@ import { DismissMatchDto } from './dto/dismiss-match.dto';
 
 describe('MatchesService', () => {
     let service: MatchesService;
-    let causeRepository: jest.Mocked<Partial<Repository<Cause>>>;
-    let volunteerRepository: jest.Mocked<Partial<Repository<Volunteer>>>;
-    let submissionRepository: jest.Mocked<Partial<Repository<Submission>>>;
-    let submissionService: jest.Mocked<Partial<SubmissionService>>;
-    let mockQueryBuilder: any;
+    let causeRepository: {
+        createQueryBuilder: jest.Mock<(alias?: string) => typeof mockQueryBuilder>;
+        findOneBy: jest.Mock<(where: { id: number }) => Promise<Cause | null>>;
+        save: jest.Mock<(entity: Cause) => Promise<Cause>>;
+    };
+    let volunteerRepository: {
+        findOne: jest.Mock<(options: { where: { user_id: number } }) => Promise<Volunteer | null>>;
+    };
+    let submissionRepository: {
+        find: jest.Mock<(...args: unknown[]) => Promise<Array<Partial<Submission>>>>;
+        count: jest.Mock<(...args: unknown[]) => Promise<number>>;
+        createQueryBuilder: jest.Mock<(alias?: string) => typeof mockSubmissionQueryBuilder>;
+        save: jest.Mock<(...args: unknown[]) => Promise<Submission>>;
+        create: jest.Mock<(...args: unknown[]) => Submission>;
+    };
+    let submissionService: {
+        create: jest.Mock<(userId: number, dto: { cause_id: number; justification: string }) => Promise<Submission>>;
+    };
+    let mockQueryBuilder: {
+        leftJoinAndSelect: jest.Mock<(...args: unknown[]) => typeof mockQueryBuilder>;
+        where: jest.Mock<(...args: unknown[]) => typeof mockQueryBuilder>;
+        andWhere: jest.Mock<(...args: unknown[]) => typeof mockQueryBuilder>;
+        orderBy: jest.Mock<(...args: unknown[]) => typeof mockQueryBuilder>;
+        addOrderBy: jest.Mock<(...args: unknown[]) => typeof mockQueryBuilder>;
+        getMany: jest.Mock<() => Promise<Cause[]>>;
+    };
+    let mockSubmissionQueryBuilder: {
+        select: jest.Mock<(...args: unknown[]) => typeof mockSubmissionQueryBuilder>;
+        addSelect: jest.Mock<(...args: unknown[]) => typeof mockSubmissionQueryBuilder>;
+        where: jest.Mock<(...args: unknown[]) => typeof mockSubmissionQueryBuilder>;
+        andWhere: jest.Mock<(...args: unknown[]) => typeof mockSubmissionQueryBuilder>;
+        groupBy: jest.Mock<(...args: unknown[]) => typeof mockSubmissionQueryBuilder>;
+        getRawMany: jest.Mock<() => Promise<Array<{ cause_id: number; count: string | number }>>>;
+    };
     let validationPipe: ValidationPipe;
 
     const mockUser = {
@@ -44,7 +76,7 @@ describe('MatchesService', () => {
         blood_type: 'O+',
         emergency_contact: '+57 300 000 0000',
         completed_causes: 3,
-        user: {} as any,
+        user: {} as User,
         volunteerSkills: [],
         volunteerCategories: [],
         volunteerAchievements: [],
@@ -52,13 +84,13 @@ describe('MatchesService', () => {
         attendances: [],
     };
 
-    const mockOrganizer = {
+    const mockOrganizer: Partial<Organizer> = {
         id: 1,
         name: 'Fundación Huellas Verdes',
         verification_status: 'verified',
     };
 
-    const mockCategory = {
+    const mockCategory: Partial<Category> = {
         id: 2,
         name: 'Medio Ambiente',
     };
@@ -80,8 +112,8 @@ describe('MatchesService', () => {
         location_longitude: '-75.5812',
         progress: 'open',
         qr_code: 'QR-CAUSE-101',
-        organizer: mockOrganizer as any,
-        category: mockCategory as any,
+        organizer: mockOrganizer as Organizer,
+        category: mockCategory as Category,
         supplies: [],
         announcements: [],
         images: [],
@@ -106,8 +138,8 @@ describe('MatchesService', () => {
         location_longitude: '-75.5700',
         progress: 'open',
         qr_code: 'QR-CAUSE-102',
-        organizer: mockOrganizer as any,
-        category: mockCategory as any,
+        organizer: mockOrganizer as Organizer,
+        category: mockCategory as Category,
         supplies: [],
         announcements: [],
         images: [],
@@ -132,8 +164,8 @@ describe('MatchesService', () => {
         location_longitude: '-75.5600',
         progress: 'open',
         qr_code: 'QR-CAUSE-103',
-        organizer: mockOrganizer as any,
-        category: mockCategory as any,
+        organizer: mockOrganizer as Organizer,
+        category: mockCategory as Category,
         supplies: [],
         announcements: [],
         images: [],
@@ -154,33 +186,47 @@ describe('MatchesService', () => {
 
     beforeEach(async () => {
         mockQueryBuilder = {
-            leftJoinAndSelect: jest.fn().mockReturnThis(),
-            where: jest.fn().mockReturnThis(),
-            andWhere: jest.fn().mockReturnThis(),
-            orderBy: jest.fn().mockReturnThis(),
-            addOrderBy: jest.fn().mockReturnThis(),
-            getMany: jest.fn().mockResolvedValue([mockCause1, mockCause2]),
+            leftJoinAndSelect: jest.fn((..._args: unknown[]) => mockQueryBuilder),
+            where: jest.fn((..._args: unknown[]) => mockQueryBuilder),
+            andWhere: jest.fn((..._args: unknown[]) => mockQueryBuilder),
+            orderBy: jest.fn((..._args: unknown[]) => mockQueryBuilder),
+            addOrderBy: jest.fn((..._args: unknown[]) => mockQueryBuilder),
+            getMany: jest.fn(() => Promise.resolve([mockCause1, mockCause2])),
+        };
+
+        mockSubmissionQueryBuilder = {
+            select: jest.fn((..._args: unknown[]) => mockSubmissionQueryBuilder),
+            addSelect: jest.fn((..._args: unknown[]) => mockSubmissionQueryBuilder),
+            where: jest.fn((..._args: unknown[]) => mockSubmissionQueryBuilder),
+            andWhere: jest.fn((..._args: unknown[]) => mockSubmissionQueryBuilder),
+            groupBy: jest.fn((..._args: unknown[]) => mockSubmissionQueryBuilder),
+            getRawMany: jest.fn(() => Promise.resolve([] as Array<{ cause_id: number; count: string | number }>)),
         };
 
         causeRepository = {
-            createQueryBuilder: jest.fn(() => mockQueryBuilder),
-            findOneBy: jest.fn(() => Promise.resolve(mockCause1)),
-            save: jest.fn(),
+            createQueryBuilder: jest.fn((_alias?: string) => mockQueryBuilder),
+            findOneBy: jest.fn((_where: { id: number }) => Promise.resolve(mockCause1 as Cause | null)),
+            save: jest.fn((entity: Cause) => Promise.resolve(entity)),
         };
 
         volunteerRepository = {
-            findOne: jest.fn(() => Promise.resolve(mockVolunteer)),
+            findOne: jest.fn((_options: { where: { user_id: number } }) =>
+                Promise.resolve(mockVolunteer as Volunteer | null),
+            ),
         };
 
         submissionRepository = {
-            find: jest.fn(() => Promise.resolve([])),
-            count: jest.fn(() => Promise.resolve(0)),
-            save: jest.fn(),
-            create: jest.fn(),
+            find: jest.fn((..._args: unknown[]) => Promise.resolve([] as Array<Partial<Submission>>)),
+            count: jest.fn((..._args: unknown[]) => Promise.resolve(0)),
+            createQueryBuilder: jest.fn((_alias?: string) => mockSubmissionQueryBuilder),
+            save: jest.fn((..._args: unknown[]) => Promise.resolve(mockCreatedSubmission)),
+            create: jest.fn((..._args: unknown[]) => mockCreatedSubmission),
         };
 
         submissionService = {
-            create: jest.fn(() => Promise.resolve(mockCreatedSubmission)),
+            create: jest.fn((_userId: number, _dto: { cause_id: number; justification: string }) =>
+                Promise.resolve(mockCreatedSubmission),
+            ),
         };
 
         const module: TestingModule = await Test.createTestingModule({
@@ -223,7 +269,10 @@ describe('MatchesService', () => {
                 where: { user_id: mockUser.id },
             });
             expect(submissionRepository.find).toHaveBeenCalledWith({
-                where: { volunteer_id: mockVolunteer.id },
+                where: {
+                    volunteer_id: mockVolunteer.id,
+                    status: In([SubmissionStatus.PENDING, SubmissionStatus.ACCEPTED]),
+                },
                 select: ['cause_id'],
             });
             expect(causeRepository.createQueryBuilder).toHaveBeenCalledWith('cause');
@@ -240,8 +289,8 @@ describe('MatchesService', () => {
             expect(cards[1].id).toBe(102);
         });
 
-        it('2. should exclude causes where the volunteer already has a submission', async () => {
-            (submissionRepository.find as any).mockResolvedValue([{ cause_id: 101 }]);
+        it('2. should exclude causes where the volunteer already has a pending or accepted submission', async () => {
+            submissionRepository.find.mockResolvedValue([{ cause_id: 101 }]);
 
             await service.getDeck(mockUser);
 
@@ -250,14 +299,27 @@ describe('MatchesService', () => {
             });
         });
 
+        it('should allow causes with only rejected submissions to be included in deck query filter', async () => {
+            submissionRepository.find.mockResolvedValue([]);
+
+            const cards = await service.getDeck(mockUser);
+
+            expect(submissionRepository.find).toHaveBeenCalledWith({
+                where: {
+                    volunteer_id: mockVolunteer.id,
+                    status: In([SubmissionStatus.PENDING, SubmissionStatus.ACCEPTED]),
+                },
+                select: ['cause_id'],
+            });
+            expect(cards).toHaveLength(2);
+        });
+
         it('3. should exclude causes that have reached maximum capacity', async () => {
             mockQueryBuilder.getMany.mockResolvedValue([mockCause1, mockCauseFull]);
-            (submissionRepository.count as any).mockImplementation((options: any) => {
-                if (options?.where?.cause_id === 103) {
-                    return Promise.resolve(5);
-                }
-                return Promise.resolve(2);
-            });
+            mockSubmissionQueryBuilder.getRawMany.mockResolvedValue([
+                { cause_id: 101, count: 2 },
+                { cause_id: 103, count: 5 },
+            ]);
 
             const cards = await service.getDeck(mockUser);
 
@@ -268,10 +330,10 @@ describe('MatchesService', () => {
         it('4. should handle causes without capacity limit as unlimited spots', async () => {
             const mockCauseNoLimit: Cause = {
                 ...mockCause1,
-                capacity: null as any,
+                capacity: null as unknown as number,
             };
             mockQueryBuilder.getMany.mockResolvedValue([mockCauseNoLimit]);
-            (submissionRepository.count as any).mockResolvedValue(4);
+            mockSubmissionQueryBuilder.getRawMany.mockResolvedValue([{ cause_id: 101, count: 4 }]);
 
             const cards = await service.getDeck(mockUser);
 
@@ -282,8 +344,30 @@ describe('MatchesService', () => {
             expect(cards[0].is_full).toBe(false);
         });
 
+        it('should perform a single batch aggregation query for occupied spots instead of N count queries', async () => {
+            mockQueryBuilder.getMany.mockResolvedValue([mockCause1, mockCause2]);
+            mockSubmissionQueryBuilder.getRawMany.mockResolvedValue([
+                { cause_id: 101, count: 3 },
+                { cause_id: 102, count: 7 },
+            ]);
+
+            const cards = await service.getDeck(mockUser);
+
+            expect(submissionRepository.createQueryBuilder).toHaveBeenCalledTimes(1);
+            expect(submissionRepository.createQueryBuilder).toHaveBeenCalledWith('submission');
+            expect(mockSubmissionQueryBuilder.where).toHaveBeenCalledWith(
+                'submission.cause_id IN (:...candidateCauseIds)',
+                { candidateCauseIds: [101, 102] },
+            );
+            expect(mockSubmissionQueryBuilder.groupBy).toHaveBeenCalledWith('submission.cause_id');
+            expect(submissionRepository.count).not.toHaveBeenCalled();
+            expect(cards).toHaveLength(2);
+            expect(cards[0].occupied_spots).toBe(3);
+            expect(cards[1].occupied_spots).toBe(7);
+        });
+
         it('5. should throw NotFoundException when the user does not have a volunteer profile', async () => {
-            (volunteerRepository.findOne as any).mockResolvedValue(null);
+            volunteerRepository.findOne.mockResolvedValue(null);
 
             await expect(service.getDeck(mockUser)).rejects.toThrow(NotFoundException);
         });
@@ -330,7 +414,7 @@ describe('MatchesService', () => {
 
     describe('US-3.1.2: View cause information on cards', () => {
         it('10. should correctly construct card information structure with all required fields', async () => {
-            (submissionRepository.count as any).mockResolvedValue(3);
+            mockSubmissionQueryBuilder.getRawMany.mockResolvedValue([{ cause_id: 101, count: 3 }]);
 
             const cards = await service.getDeck(mockUser, { limit: 1, page: 1 });
             const card = cards[0];
@@ -369,7 +453,7 @@ describe('MatchesService', () => {
                     id: 3,
                     name: 'Asociación Nueva',
                     verification_status: 'pending',
-                } as any,
+                } as Organizer,
             };
             mockQueryBuilder.getMany.mockResolvedValue([unverifiedCause]);
 
@@ -394,19 +478,19 @@ describe('MatchesService', () => {
             expect(result).toEqual(mockCreatedSubmission);
         });
 
-        it('13. should use default justification when justification is omitted or empty', async () => {
+        it('13. should use default justification in English when justification is omitted or empty', async () => {
             await service.match(5, { cause_id: 101 });
 
             expect(submissionService.create).toHaveBeenCalledWith(5, {
                 cause_id: 101,
-                justification: 'Postulación generada automáticamente mediante Match en Kindly.',
+                justification: 'Automatically generated application through Kindly Match.',
             });
 
             await service.match(5, { cause_id: 101, justification: '   ' });
 
             expect(submissionService.create).toHaveBeenCalledWith(5, {
                 cause_id: 101,
-                justification: 'Postulación generada automáticamente mediante Match en Kindly.',
+                justification: 'Automatically generated application through Kindly Match.',
             });
         });
 
@@ -416,36 +500,36 @@ describe('MatchesService', () => {
             expect(submissionService.create).toHaveBeenCalledTimes(1);
             expect(submissionService.create).toHaveBeenCalledWith(99, {
                 cause_id: 202,
-                justification: 'Postulación generada automáticamente mediante Match en Kindly.',
+                justification: 'Automatically generated application through Kindly Match.',
             });
         });
 
         it('15. should propagate CauseNotFoundException when the cause does not exist', async () => {
-            (submissionService.create as any).mockRejectedValue(new CauseNotFoundException(999));
+            submissionService.create.mockRejectedValue(new CauseNotFoundException(999));
 
             await expect(service.match(5, { cause_id: 999 })).rejects.toThrow(CauseNotFoundException);
         });
 
         it('16. should propagate CauseNotAvailableException when cause is not available or has ended', async () => {
-            (submissionService.create as any).mockRejectedValue(new CauseNotAvailableException());
+            submissionService.create.mockRejectedValue(new CauseNotAvailableException());
 
             await expect(service.match(5, { cause_id: 101 })).rejects.toThrow(CauseNotAvailableException);
         });
 
         it('17. should propagate DuplicateSubmissionException when volunteer already applied to the cause', async () => {
-            (submissionService.create as any).mockRejectedValue(new DuplicateSubmissionException());
+            submissionService.create.mockRejectedValue(new DuplicateSubmissionException());
 
             await expect(service.match(5, { cause_id: 101 })).rejects.toThrow(DuplicateSubmissionException);
         });
 
         it('18. should propagate CauseQuotaFullException when cause capacity is full', async () => {
-            (submissionService.create as any).mockRejectedValue(new CauseQuotaFullException());
+            submissionService.create.mockRejectedValue(new CauseQuotaFullException());
 
             await expect(service.match(5, { cause_id: 101 })).rejects.toThrow(CauseQuotaFullException);
         });
 
         it('19. should propagate NotFoundException when volunteer profile is not found', async () => {
-            (submissionService.create as any).mockRejectedValue(
+            submissionService.create.mockRejectedValue(
                 new NotFoundException("Volunteer profile for user '5' not found."),
             );
 
@@ -507,7 +591,7 @@ describe('MatchesService', () => {
         });
 
         it('24. should propagate CauseNotFoundException when the dismissed cause does not exist', async () => {
-            (causeRepository.findOneBy as any).mockResolvedValue(null);
+            causeRepository.findOneBy.mockResolvedValue(null);
 
             await expect(service.dismiss(5, { cause_id: 999 })).rejects.toThrow(CauseNotFoundException);
             expect(submissionRepository.create).not.toHaveBeenCalled();
