@@ -68,23 +68,7 @@ export class MatchesService {
 
         const candidateCauses = await queryBuilder.getMany();
 
-        const candidateCauseIds = candidateCauses.map((c) => c.id);
-        const occupiedMap = new Map<number, number>();
-
-        if (candidateCauseIds.length > 0) {
-            const occupiedCounts = await this.submissionRepository
-                .createQueryBuilder('submission')
-                .select('submission.cause_id', 'cause_id')
-                .addSelect('COUNT(submission.id)', 'count')
-                .where('submission.cause_id IN (:...candidateCauseIds)', { candidateCauseIds })
-                .andWhere('LOWER(submission.status) IN (:...statuses)', { statuses: ['approved', 'accepted'] })
-                .groupBy('submission.cause_id')
-                .getRawMany<{ cause_id: number; count: string | number }>();
-
-            for (const row of occupiedCounts) {
-                occupiedMap.set(Number(row.cause_id), Number(row.count));
-            }
-        }
+        const occupiedMap = await this.countOccupiedSpots(candidateCauses.map((c) => c.id));
 
         const limit = queryDto?.limit ?? 10;
         const page = queryDto?.page ?? 1;
@@ -254,6 +238,27 @@ export class MatchesService {
             dismissed: true,
             cause_id: dismissMatchDto.cause_id,
         };
+    }
+
+    private async countOccupiedSpots(candidateCauseIds: number[]): Promise<Map<number, number>> {
+        const occupiedMap = new Map<number, number>();
+
+        if (candidateCauseIds.length > 0) {
+            const occupiedCounts = await this.submissionRepository
+                .createQueryBuilder('submission')
+                .select('submission.cause_id', 'cause_id')
+                .addSelect('COUNT(submission.id)', 'count')
+                .where('submission.cause_id IN (:...candidateCauseIds)', { candidateCauseIds })
+                .andWhere('LOWER(submission.status) IN (:...statuses)', { statuses: ['approved', 'accepted'] })
+                .groupBy('submission.cause_id')
+                .getRawMany<{ cause_id: number; count: string | number }>();
+
+            for (const row of occupiedCounts) {
+                occupiedMap.set(Number(row.cause_id), Number(row.count));
+            }
+        }
+
+        return occupiedMap;
     }
 
     private buildCauseCard(cause: Cause, occupied: number): CauseCardDto {
