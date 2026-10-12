@@ -5,9 +5,10 @@ import { VolunteerAchievementController } from './volunteer-achievement.controll
 import { VolunteerAchievement } from '../entities/volunteer-achievement.entity';
 import { Volunteer } from '../../volunteers/entities/volunteer.entity';
 import { Achievement } from '../entities/achievement.entity';
+import { AuthModule } from '../../auth/auth.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([VolunteerAchievement, Volunteer, Achievement])],
+    imports: [TypeOrmModule.forFeature([VolunteerAchievement, Volunteer, Achievement]), AuthModule],
     controllers: [VolunteerAchievementController],
     providers: [VolunteerAchievementService],
     exports: [VolunteerAchievementService],
