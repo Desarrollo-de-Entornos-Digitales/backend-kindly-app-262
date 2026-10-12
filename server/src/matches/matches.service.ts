@@ -9,9 +9,14 @@ import { SubmissionStatus } from '../participations/submission/submission-status
 import { CauseNotAvailableException, CauseNotFoundException } from '../common/exceptions';
 import { CauseCardDto } from './dto/cause-card.dto';
 import { CausePinDto } from './dto/cause-pin.dto';
+import { NearbyCausePinDto } from './dto/nearby-cause-pin.dto';
+import { NearbyCausesQueryDto } from './dto/nearby-causes-query.dto';
+import { distanceInKm } from './geo.util';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { DismissMatchDto } from './dto/dismiss-match.dto';
+
+const DEFAULT_NEARBY_RADIUS_KM = 10;
 
 @Injectable()
 export class MatchesService {
@@ -101,6 +106,20 @@ export class MatchesService {
         }
 
         return eligibleCards.slice(startIndex, startIndex + limit);
+    }
+
+    async getNearbyPins(queryDto: NearbyCausesQueryDto): Promise<NearbyCausePinDto[]> {
+        const origin = { latitude: queryDto.lat, longitude: queryDto.lng };
+        const radiusKm = queryDto.radius_km ?? DEFAULT_NEARBY_RADIUS_KM;
+        const pins = await this.getMapPins();
+
+        return pins
+            .map((pin) => ({
+                ...pin,
+                distance_km: Math.round(distanceInKm(origin, pin) * 100) / 100,
+            }))
+            .filter((pin) => pin.distance_km <= radiusKm)
+            .sort((a, b) => a.distance_km - b.distance_km || a.id - b.id);
     }
 
     async getMapPins(): Promise<CausePinDto[]> {

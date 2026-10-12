@@ -3,6 +3,7 @@ import { MatchesService } from './matches.service';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { DismissMatchDto } from './dto/dismiss-match.dto';
+import { NearbyCausesQueryDto } from './dto/nearby-causes-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { PermissionsGuard } from '../auth/guards/permission.guard';
@@ -43,6 +44,13 @@ export class MatchesController {
     @Roles('volunteer')
     getMapPins() {
         return this.matchesService.getMapPins();
+    }
+
+    @Get('map/nearby')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('volunteer')
+    getNearbyPins(@Query() queryDto: NearbyCausesQueryDto) {
+        return this.matchesService.getNearbyPins(queryDto);
     }
 
     @Get('map/preview/:causeId')
