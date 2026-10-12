@@ -187,4 +187,28 @@ describe('CausesController', () => {
             expect(causesService.remove).toHaveBeenCalledWith(1);
         });
     });
+
+    describe('searchByKeywords', () => {
+        it('should delegate search to causesService.searchByKeywords', async () => {
+            const dto = { keyword: 'Arboles' };
+            causesService.searchByKeywords = jest.fn().mockResolvedValue([mockCause] as never);
+
+            const result = await controller.searchByKeywords(dto as any);
+
+            expect(result).toEqual([mockCause]);
+            expect(causesService.searchByKeywords).toHaveBeenCalledWith(dto);
+        });
+    });
+
+    describe('filterByCategory', () => {
+        it('should delegate filter to causesService.filterByCategory', async () => {
+            const dto = { category_id: 1 };
+            causesService.filterByCategory = jest.fn().mockResolvedValue([mockCause] as never);
+
+            const result = await controller.filterByCategory(dto as any);
+
+            expect(result).toEqual([mockCause]);
+            expect(causesService.filterByCategory).toHaveBeenCalledWith(dto);
+        });
+    });
 });
