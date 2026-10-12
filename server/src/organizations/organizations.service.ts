@@ -1,60 +1,40 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Organizer } from './entities/organizer.entity';
-import { OrganizationType } from './entities/organization-type.entity';
-import { User } from '../users/entities/user.entity';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
 import { SubmitVerificationDto } from './dto/submit-verification.dto';
 import { ReviewVerificationDto } from './dto/review-verification.dto';
 import { QueryOrganizationsDto } from './dto/query-organizations.dto';
-import { OrganizerNotFoundException, UserNotFoundException } from '../common/exceptions';
+import { OrganizerNotFoundException } from '../common/exceptions';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class OrganizationsService {
     constructor(
         @InjectRepository(Organizer)
         private readonly organizerRepository: Repository<Organizer>,
-        @InjectRepository(OrganizationType)
-        private readonly organizationTypeRepository: Repository<OrganizationType>,
-        @InjectRepository(User)
-        private readonly userRepository: Repository<User>,
     ) {}
 
-    async create(userId: number, createDto: CreateOrganizationDto): Promise<Organizer> {
-        const user = await this.userRepository.findOneBy({ id: userId });
-        if (!user) {
-            throw new UserNotFoundException(userId);
-        }
-
+    async create(userId: number, dto: CreateOrganizationDto): Promise<Organizer> {
         const existing = await this.organizerRepository.findOneBy({ user_id: userId });
         if (existing) {
-            throw new ConflictException(`Organization profile already exists for user_id '${userId}'`);
+            throw new ConflictException(`Organization profile already exists for user '${userId}'`);
         }
 
-        const type = await this.organizationTypeRepository.findOneBy({
-            id: createDto.organization_type_id,
-        });
-        if (!type) {
-            throw new NotFoundException(`Organization type with ID '${createDto.organization_type_id}' not found.`);
-        }
+        const isOrg = dto.is_organization === true;
 
-        const isOrg = createDto.is_organization === true;
-
-        const newOrganizer = this.organizerRepository.create({
-            name: createDto.name,
-            description: createDto.description,
-            is_organization: isOrg,
+        const organizer = this.organizerRepository.create({
+            ...dto,
             user_id: userId,
-            organization_type_id: createDto.organization_type_id,
-            website: isOrg ? createDto.website : (createDto.website ?? null),
-            verification_file: isOrg ? createDto.verification_file : null,
             verification_status: isOrg ? 'pending' : 'verified',
+            verification_file: isOrg ? dto.verification_file : null,
+            website: isOrg ? dto.website : null,
         });
 
-        const saved = await this.organizerRepository.save(newOrganizer);
+        const saved = await this.organizerRepository.save(organizer);
         return await this.findOne(saved.id);
     }
 
@@ -71,27 +51,17 @@ export class OrganizationsService {
         return this.sanitize(organizer);
     }
 
-    async updateByUserId(userId: number, updateDto: UpdateOrganizationDto): Promise<Organizer> {
+    async updateByUserId(userId: number, dto: UpdateOrganizationDto): Promise<Organizer> {
         const organizer = await this.findByUserId(userId);
 
-        if (updateDto.organization_type_id) {
-            const type = await this.organizationTypeRepository.findOneBy({
-                id: updateDto.organization_type_id,
-            });
-            if (!type) {
-                throw new NotFoundException(`Organization type with ID '${updateDto.organization_type_id}' not found.`);
-            }
+        Object.assign(organizer, dto);
+
+        if (organizer.is_organization === false) {
+            organizer.verification_file = null;
         }
 
-        // Proteger campos sensibles que no se deben alterar desde actualización libre de perfil
-        const { user_id: _userId, verification_status: _status, ...dataToUpdate } = updateDto as any;
-
-        if (dataToUpdate.is_organization === false) {
-            dataToUpdate.verification_file = null;
-        }
-
-        await this.organizerRepository.update(organizer.id, dataToUpdate);
-        return await this.findOne(organizer.id);
+        const saved = await this.organizerRepository.save(organizer);
+        return this.sanitize(saved);
     }
 
     async submitVerification(userId: number, dto: SubmitVerificationDto) {
@@ -138,14 +108,7 @@ export class OrganizationsService {
     }
 
     async reviewVerification(id: number, dto: ReviewVerificationDto) {
-        const organizer = await this.organizerRepository.findOne({
-            where: { id },
-            relations: ['user', 'organizationType'],
-        });
-
-        if (!organizer) {
-            throw new OrganizerNotFoundException(id);
-        }
+        const organizer = await this.findOne(id);
 
         organizer.verification_status = dto.status;
         const saved = await this.organizerRepository.save(organizer);
@@ -158,9 +121,8 @@ export class OrganizationsService {
     }
 
     async findAll(query?: QueryOrganizationsDto) {
-        const page = query?.page && query.page > 0 ? Number(query.page) : 1;
-        const limit = query?.limit && query.limit > 0 ? Number(query.limit) : 10;
-        const skip = (page - 1) * limit;
+        const page = Number(query?.page) || 1;
+        const limit = Number(query?.limit) || 10;
 
         const qb = this.organizerRepository
             .createQueryBuilder('organizer')
@@ -168,8 +130,9 @@ export class OrganizationsService {
             .leftJoinAndSelect('organizer.organizationType', 'organizationType');
 
         if (query?.search) {
-            const term = `%${query.search.trim()}%`;
-            qb.andWhere('(organizer.name ILIKE :term OR organizer.description ILIKE :term)', { term });
+            qb.andWhere('(organizer.name ILIKE :term OR organizer.description ILIKE :term)', {
+                term: `%${query.search.trim()}%`,
+            });
         }
 
         if (query?.organization_type_id) {
@@ -184,18 +147,17 @@ export class OrganizationsService {
             qb.andWhere('organizer.verification_status = :status', { status: query.verification_status });
         }
 
-        qb.orderBy('organizer.id', 'ASC').skip(skip).take(limit);
-
-        const [items, total] = await qb.getManyAndCount();
+        const [items, total] = await qb
+            .orderBy('organizer.id', 'ASC')
+            .skip((page - 1) * limit)
+            .take(limit)
+            .getManyAndCount();
 
         return {
-            data: items.map((item) => this.sanitize(item)),
-            meta: {
-                total,
-                page,
-                limit,
-                totalPages: Math.ceil(total / limit) || 1,
-            },
+            data: items.map((org) => this.sanitize(org)),
+            total,
+            page,
+            limit,
         };
     }
 

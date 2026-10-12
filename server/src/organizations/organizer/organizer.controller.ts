@@ -1,9 +1,26 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseIntPipe, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Patch,
+    Param,
+    Delete,
+    ParseIntPipe,
+    HttpCode,
+    HttpStatus,
+    UseGuards,
+} from '@nestjs/common';
 import { OrganizerService } from './organizer.service';
 import { CreateOrganizerDto } from './dto/create-organizer.dto';
 import { UpdateOrganizerDto } from './dto/update-organizer.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 
 @Controller('organizer')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('admin')
 export class OrganizerController {
     constructor(private readonly organizerService: OrganizerService) {}
 

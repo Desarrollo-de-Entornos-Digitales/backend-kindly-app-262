@@ -1,64 +1,39 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Organizer } from '../entities/organizer.entity';
-import { OrganizationType } from '../entities/organization-type.entity';
-import { User } from '../../users/entities/user.entity';
 import { CreateOrganizerDto } from './dto/create-organizer.dto';
 import { UpdateOrganizerDto } from './dto/update-organizer.dto';
-import { OrganizerNotFoundException, UserNotFoundException } from '../../common/exceptions';
+import { OrganizerNotFoundException } from '../../common/exceptions';
+import { User } from '../../users/entities/user.entity';
 
 @Injectable()
 export class OrganizerService {
     constructor(
         @InjectRepository(Organizer)
         private readonly organizerRepository: Repository<Organizer>,
-        @InjectRepository(User)
-        private readonly userRepository: Repository<User>,
-        @InjectRepository(OrganizationType)
-        private readonly organizationTypeRepository: Repository<OrganizationType>,
     ) {}
 
-    async create(createOrganizerDto: CreateOrganizerDto, userId?: number): Promise<Organizer> {
+    async create(dto: CreateOrganizerDto, userId?: number): Promise<Organizer> {
         if (userId) {
-            const user = await this.userRepository.findOneBy({ id: userId });
-            if (!user) {
-                throw new UserNotFoundException(userId);
-            }
-
-            const existing = await this.organizerRepository.findOneBy({
-                user_id: userId,
-            });
+            const existing = await this.organizerRepository.findOneBy({ user_id: userId });
             if (existing) {
                 throw new ConflictException(`Organizer profile already exists for user_id '${userId}'`);
             }
         }
 
-        // Todo organizador pertenece a una tipología de iniciativa/causa
-        const type = await this.organizationTypeRepository.findOneBy({
-            id: createOrganizerDto.organization_type_id,
-        });
-        if (!type) {
-            throw new NotFoundException(
-                `Organization type with ID '${createOrganizerDto.organization_type_id}' not found.`,
-            );
-        }
+        const isOrg = dto.is_organization === true;
 
-        const isOrg = createOrganizerDto.is_organization === true;
-
-        const newOrganizer = this.organizerRepository.create({
-            name: createOrganizerDto.name,
-            description: createOrganizerDto.description,
-            is_organization: isOrg,
+        const organizer = this.organizerRepository.create({
+            ...dto,
             user_id: userId,
-            organization_type_id: createOrganizerDto.organization_type_id,
-            website: isOrg ? createOrganizerDto.website : (createOrganizerDto.website ?? null),
-            verification_file: isOrg ? createOrganizerDto.verification_file : null,
             verification_status: isOrg ? 'pending' : 'verified',
+            verification_file: isOrg ? dto.verification_file : null,
+            website: isOrg ? dto.website : null,
         });
 
-        const saved = await this.organizerRepository.save(newOrganizer);
+        const saved = await this.organizerRepository.save(organizer);
         return await this.findOne(saved.id);
     }
 
@@ -66,8 +41,7 @@ export class OrganizerService {
         const organizers = await this.organizerRepository.find({
             relations: ['user', 'organizationType'],
         });
-
-        return organizers.map((organizer) => this.sanitize(organizer));
+        return organizers.map((org) => this.sanitize(org));
     }
 
     async findOne(id: number): Promise<Organizer> {
@@ -96,21 +70,9 @@ export class OrganizerService {
         return this.sanitize(organizer);
     }
 
-    async update(id: number, updateOrganizerDto: UpdateOrganizerDto): Promise<Organizer> {
+    async update(id: number, dto: UpdateOrganizerDto): Promise<Organizer> {
         await this.findOne(id);
-
-        if (updateOrganizerDto.organization_type_id) {
-            const type = await this.organizationTypeRepository.findOneBy({
-                id: updateOrganizerDto.organization_type_id,
-            });
-            if (!type) {
-                throw new NotFoundException(
-                    `Organization type with ID '${updateOrganizerDto.organization_type_id}' not found.`,
-                );
-            }
-        }
-
-        await this.organizerRepository.update(id, updateOrganizerDto);
+        await this.organizerRepository.update(id, dto);
         return await this.findOne(id);
     }
 
