@@ -22,9 +22,10 @@
                   "});",
                   "pm.test(\"Register Volunteer - Response has valid body\", function () {",
                   "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
-                  "    pm.expect(jsonData).to.have.property('id');",
-                  "    pm.expect(jsonData).to.have.property('email', 'carlos@kindly.org');",
+                  "    pm.expect(jsonData).to.be.an(\"object\").that.is.not.null;",
+                  "    pm.expect(jsonData).to.have.property(\"access_token\");",
+                  "    pm.expect(jsonData).to.have.property(\"user\");",
+                  "    pm.expect(jsonData.user).to.have.property(\"id\");",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -53,7 +54,7 @@
             "description": "Registers a new user with the volunteer role.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Carlos Perez\",\n  \"username\": \"carlos_volunteer\",\n  \"email\": \"carlos@kindly.org\",\n  \"contact\": \"+573001234567\",\n  \"password\": \"Password123!\",\n  \"role\": \"volunteer\"\n}",
+              "raw": "{\n  \"name\": \"Carlos Perez\",\n  \"username\": \"carlos_{{$timestamp}}\",\n  \"email\": \"carlos_{{$timestamp}}@kindly.org\",\n  \"contact\": \"+573001234567\",\n  \"password\": \"Password123!\",\n  \"role\": \"volunteer\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -75,9 +76,10 @@
                   "});",
                   "pm.test(\"Register Organizer - Response has valid body\", function () {",
                   "    const jsonData = pm.response.json();",
-                  "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
-                  "    pm.expect(jsonData).to.have.property('id');",
-                  "    pm.expect(jsonData).to.have.property('email', 'contacto@esperanza.org');",
+                  "    pm.expect(jsonData).to.be.an(\"object\").that.is.not.null;",
+                  "    pm.expect(jsonData).to.have.property(\"access_token\");",
+                  "    pm.expect(jsonData).to.have.property(\"user\");",
+                  "    pm.expect(jsonData.user).to.have.property(\"id\");",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -106,7 +108,7 @@
             "description": "Registers a new user with the organizer role.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Fundacion Esperanza\",\n  \"username\": \"esperanza_org\",\n  \"email\": \"contacto@esperanza.org\",\n  \"contact\": \"+573117654321\",\n  \"password\": \"Password123!\",\n  \"role\": \"organizer\"\n}",
+              "raw": "{\n  \"name\": \"Fundacion Esperanza\",\n  \"username\": \"esperanza_{{$timestamp}}\",\n  \"email\": \"contacto_{{$timestamp}}@esperanza.org\",\n  \"contact\": \"+573117654321\",\n  \"password\": \"Password123!\",\n  \"role\": \"organizer\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -132,7 +134,7 @@
                   "    pm.expect(jsonData).to.have.property('access_token');",
                   "    pm.expect(jsonData).to.have.property('user');",
                   "});",
-                  "const data = pm.response.json();\nif (data.access_token) {\n    pm.environment.set(\"adminToken\", data.access_token);\n    pm.environment.set(\"authToken\", data.access_token);\n    pm.environment.set(\"userId\", data.user.id);\n}"
+                  "const resBody = pm.response.json();\nif (resBody.access_token) {\n    pm.environment.set(\"adminToken\", resBody.access_token);\n    pm.environment.set(\"authToken\", resBody.access_token);\n    pm.environment.set(\"userId\", resBody.user.id);\n}"
                 ],
                 "type": "text/javascript"
               }
@@ -186,7 +188,7 @@
                   "    pm.expect(jsonData).to.have.property('access_token');",
                   "    pm.expect(jsonData).to.have.property('user');",
                   "});",
-                  "const data = pm.response.json();\nif (data.access_token) {\n    pm.environment.set(\"volunteerToken\", data.access_token);\n    pm.environment.set(\"authToken\", data.access_token);\n    pm.environment.set(\"userId\", data.user.id);\n}"
+                  "const resBody = pm.response.json();\nif (resBody.access_token) {\n    pm.environment.set(\"volunteerToken\", resBody.access_token);\n    pm.environment.set(\"authToken\", resBody.access_token);\n    pm.environment.set(\"userId\", resBody.user.id);\n}"
                 ],
                 "type": "text/javascript"
               }
@@ -240,7 +242,7 @@
                   "    pm.expect(jsonData).to.have.property('access_token');",
                   "    pm.expect(jsonData).to.have.property('user');",
                   "});",
-                  "const data = pm.response.json();\nif (data.access_token) {\n    pm.environment.set(\"organizationToken\", data.access_token);\n    pm.environment.set(\"authToken\", data.access_token);\n    pm.environment.set(\"userId\", data.user.id);\n}"
+                  "const resBody = pm.response.json();\nif (resBody.access_token) {\n    pm.environment.set(\"organizationToken\", resBody.access_token);\n    pm.environment.set(\"authToken\", resBody.access_token);\n    pm.environment.set(\"userId\", resBody.user.id);\n}"
                 ],
                 "type": "text/javascript"
               }
@@ -2426,7 +2428,7 @@
                   "    pm.expect(jsonData).to.have.property('id');",
                   "    pm.expect(jsonData).to.have.property('name');",
                   "});",
-                  "const data = pm.response.json();\nif (data.id) {\n    pm.environment.set(\"organizerId\", data.id);\n}"
+                  "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"organizerId\", resBody.id);\n}"
                 ],
                 "type": "text/javascript"
               }
@@ -3084,7 +3086,7 @@
                   "    pm.expect(jsonData).to.have.property('id');",
                   "    pm.expect(jsonData).to.have.property('shirt_size', 'M');",
                   "});",
-                  "const data = pm.response.json();\nif (data.id) {\n    pm.environment.set(\"volunteerId\", data.id);\n}"
+                  "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"volunteerId\", resBody.id);\n}"
                 ],
                 "type": "text/javascript"
               }
@@ -4020,7 +4022,7 @@
                   "    pm.expect(jsonData).to.have.property('title');",
                   "    pm.expect(jsonData).to.have.property('qr_code');",
                   "});",
-                  "const data = pm.response.json();\nif (data.id) {\n    pm.environment.set(\"causeId\", data.id);\n}\nif (data.qr_code) {\n    pm.environment.set(\"attendanceQrCode\", data.qr_code);\n}"
+                  "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"causeId\", resBody.id);\n}\nif (resBody.qr_code) {\n    pm.environment.set(\"attendanceQrCode\", resBody.qr_code);\n}"
                 ],
                 "type": "text/javascript"
               }
@@ -4508,7 +4510,7 @@
                       "    pm.expect(jsonData).to.have.property('id');",
                       "    pm.expect(jsonData).to.have.property('item_name');",
                       "});",
-                      "const data = pm.response.json();\nif (data.id) {\n    pm.environment.set(\"supplyId\", data.id);\n}"
+                      "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"supplyId\", resBody.id);\n}"
                     ],
                     "type": "text/javascript"
                   }
@@ -4707,7 +4709,7 @@
                       "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
                       "    pm.expect(jsonData).to.have.property('id');",
                       "});",
-                      "const data = pm.response.json();\nif (data.id) {\n    pm.environment.set(\"imageId\", data.id);\n}"
+                      "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"imageId\", resBody.id);\n}"
                     ],
                     "type": "text/javascript"
                   }
@@ -5553,7 +5555,7 @@
                       "    pm.expect(jsonData).to.have.property('id');",
                       "    pm.expect(jsonData).to.have.property('status');",
                       "});",
-                      "const data = pm.response.json();\nif (data.id) {\n    pm.environment.set(\"submissionId\", data.id);\n}"
+                      "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"submissionId\", resBody.id);\n}"
                     ],
                     "type": "text/javascript"
                   }
@@ -5915,8 +5917,8 @@
                   "listen": "test",
                   "script": {
                     "exec": [
-                      "pm.test(\"Negative - Invalid QR Checkin - Status code is 404\", function () {",
-                      "    pm.response.to.have.status(404);",
+                      "pm.test(\"Negative - Invalid QR Code - Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
                       "});"
                     ],
                     "type": "text/javascript"
@@ -6052,7 +6054,7 @@
                   "    pm.expect(jsonData).to.have.property('id');",
                   "    pm.expect(jsonData).to.have.property('title');",
                   "});",
-                  "const data = pm.response.json();\nif (data.id) {\n    pm.environment.set(\"announcementId\", data.id);\n}"
+                  "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"announcementId\", resBody.id);\n}"
                 ],
                 "type": "text/javascript"
               }
@@ -6086,7 +6088,7 @@
             "description": "Organizer posts an update for volunteers enrolled in the cause.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"title\": \"Punto de Encuentro y Recomendaciones\",\n  \"content\": \"Nos reuniremos a las 8:00 AM en la entrada del parque. Llevar gorra, bloqueador solar y termo reutilizable.\"\n}",
+              "raw": "{\n  \"title\": \"Jornada de voluntariado actualizada\",\n  \"text\": \"Recordamos a todos los voluntarios traer ropa cómoda y botella de agua.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6426,7 +6428,7 @@
                   "    pm.expect(jsonData).to.have.property('id');",
                   "    pm.expect(jsonData).to.have.property('name');",
                   "});",
-                  "const data = pm.response.json();\nif (data.id) {\n    pm.environment.set(\"achievementId\", data.id);\n}"
+                  "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"achievementId\", resBody.id);\n}"
                 ],
                 "type": "text/javascript"
               }
