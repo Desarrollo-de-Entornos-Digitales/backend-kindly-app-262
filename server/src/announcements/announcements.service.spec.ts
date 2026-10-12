@@ -131,11 +131,14 @@ describe('AnnouncementsService', () => {
 
     beforeEach(async () => {
         announcementRepository = {
-            create: jest.fn((dto?: DeepPartial<Announcement>) => ({
-                id: 101,
-                created_at: new Date(),
-                ...dto,
-            } as Announcement)),
+            create: jest.fn(
+                (dto?: DeepPartial<Announcement>) =>
+                    ({
+                        id: 101,
+                        created_at: new Date(),
+                        ...dto,
+                    }) as Announcement,
+            ),
             save: jest.fn((entity: Partial<Announcement>) =>
                 Promise.resolve({ ...entity, id: entity.id || 101 } as Announcement),
             ),
@@ -152,22 +155,26 @@ describe('AnnouncementsService', () => {
         };
 
         imageRepository = {
-            create: jest.fn((dto?: DeepPartial<Image>) => ({
-                id: 501,
-                ...dto,
-            } as Image)),
-            save: jest.fn((entity: Partial<Image>) =>
-                Promise.resolve({ ...entity, id: entity.id || 501 } as Image),
+            create: jest.fn(
+                (dto?: DeepPartial<Image>) =>
+                    ({
+                        id: 501,
+                        ...dto,
+                    }) as Image,
             ),
+            save: jest.fn((entity: Partial<Image>) => Promise.resolve({ ...entity, id: entity.id || 501 } as Image)),
             find: jest.fn(() => Promise.resolve([mockImage])),
             findOne: jest.fn(() => Promise.resolve(mockImage)),
         };
 
         announcementReactionRepository = {
-            create: jest.fn((dto?: DeepPartial<AnnouncementReaction>) => ({
-                created_at: new Date(),
-                ...dto,
-            } as AnnouncementReaction)),
+            create: jest.fn(
+                (dto?: DeepPartial<AnnouncementReaction>) =>
+                    ({
+                        created_at: new Date(),
+                        ...dto,
+                    }) as AnnouncementReaction,
+            ),
             save: jest.fn((entity: Partial<AnnouncementReaction>) =>
                 Promise.resolve({ ...entity } as AnnouncementReaction),
             ),
