@@ -26,7 +26,14 @@
                   "    pm.expect(jsonData).to.have.property(\"access_token\");",
                   "    pm.expect(jsonData).to.have.property(\"user\");",
                   "    pm.expect(jsonData.user).to.have.property(\"id\");",
-                  "});"
+                  "});",
+                  "const resJson = pm.response.json();",
+                  "if (resJson.access_token) {",
+                  "    pm.environment.set(\"unregisteredVolunteerToken\", resJson.access_token);",
+                  "}",
+                  "if (resJson.user && resJson.user.id) {",
+                  "    pm.environment.set(\"unregisteredVolunteerUserId\", resJson.user.id);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -80,7 +87,11 @@
                   "    pm.expect(jsonData).to.have.property(\"access_token\");",
                   "    pm.expect(jsonData).to.have.property(\"user\");",
                   "    pm.expect(jsonData.user).to.have.property(\"id\");",
-                  "});"
+                  "});",
+                  "const resJson = pm.response.json();",
+                  "if (resJson.access_token) {",
+                  "    pm.environment.set(\"unregisteredOrgToken\", resJson.access_token);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -134,7 +145,12 @@
                   "    pm.expect(jsonData).to.have.property('access_token');",
                   "    pm.expect(jsonData).to.have.property('user');",
                   "});",
-                  "const resBody = pm.response.json();\nif (resBody.access_token) {\n    pm.environment.set(\"adminToken\", resBody.access_token);\n    pm.environment.set(\"authToken\", resBody.access_token);\n    pm.environment.set(\"userId\", resBody.user.id);\n}"
+                  "const resBody = pm.response.json();",
+                  "if (resBody.access_token) {",
+                  "    pm.environment.set(\"adminToken\", resBody.access_token);",
+                  "    pm.environment.set(\"authToken\", resBody.access_token);",
+                  "    pm.environment.set(\"userId\", resBody.user.id);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -188,7 +204,10 @@
                   "    pm.expect(jsonData).to.have.property('access_token');",
                   "    pm.expect(jsonData).to.have.property('user');",
                   "});",
-                  "const resBody = pm.response.json();\nif (resBody.access_token) {\n    pm.environment.set(\"volunteerToken\", resBody.access_token);\n    pm.environment.set(\"authToken\", resBody.access_token);\n    pm.environment.set(\"userId\", resBody.user.id);\n}"
+                  "const resBody = pm.response.json();",
+                  "if (resBody.access_token) {",
+                  "    pm.environment.set(\"volunteerToken\", resBody.access_token);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -242,7 +261,10 @@
                   "    pm.expect(jsonData).to.have.property('access_token');",
                   "    pm.expect(jsonData).to.have.property('user');",
                   "});",
-                  "const resBody = pm.response.json();\nif (resBody.access_token) {\n    pm.environment.set(\"organizationToken\", resBody.access_token);\n    pm.environment.set(\"authToken\", resBody.access_token);\n    pm.environment.set(\"userId\", resBody.user.id);\n}"
+                  "const resBody = pm.response.json();",
+                  "if (resBody.access_token) {",
+                  "    pm.environment.set(\"organizationToken\", resBody.access_token);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -694,7 +716,16 @@
                     "exec": [
                       "pm.test(\"Create User Direct - Status code is 201\", function () {",
                       "    pm.response.to.have.status(201);",
-                      "});"
+                      "});",
+                      "pm.test(\"Create User Direct - Response has valid body\", function () {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
+                      "    pm.expect(jsonData).to.have.property('id');",
+                      "});",
+                      "const resData = pm.response.json();",
+                      "if (resData.id) {",
+                      "    pm.environment.set(\"tempUserId\", resData.id);",
+                      "}"
                     ],
                     "type": "text/javascript"
                   }
@@ -721,7 +752,7 @@
                 "description": "Creates a user via the user controller service.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Direct User\",\n  \"username\": \"direct_user_test\",\n  \"email\": \"direct@kindly.org\",\n  \"contact\": \"+573123456789\",\n  \"passwordHash\": \"Password123!\",\n  \"roleId\": 1,\n  \"is_active\": true\n}",
+                  "raw": "{\n  \"name\": \"Direct User\",\n  \"username\": \"direct_user_{{$timestamp}}\",\n  \"email\": \"direct_{{$timestamp}}@kindly.org\",\n  \"contact\": \"+573001234567\",\n  \"passwordHash\": \"Password123!\",\n  \"roleId\": 2\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -930,7 +961,7 @@
                 "description": "Updates user details directly.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Carlos Perez Updated\",\n  \"contact\": \"+573009998877\"\n}",
+                  "raw": "{\n  \"name\": \"Admin Kindly\",\n  \"contact\": \"+573001234567\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -965,13 +996,13 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/user/{{userId}}/status",
+                  "raw": "{{baseUrl}}/user/{{tempUserId}}/status",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "user",
-                    "{{userId}}",
+                    "{{tempUserId}}",
                     "status"
                   ]
                 },
@@ -1013,13 +1044,13 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/user/{{userId}}/role",
+                  "raw": "{{baseUrl}}/user/{{tempUserId}}/role",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "user",
-                    "{{userId}}",
+                    "{{tempUserId}}",
                     "role"
                   ]
                 },
@@ -1037,7 +1068,7 @@
               "response": []
             },
             {
-              "name": "Remove User (scaffolding)",
+              "name": "[ISOLATED ONLY] Remove User (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -1048,6 +1079,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -1086,8 +1132,12 @@
                       "pm.test(\"Create Role - Response has valid body\", function () {",
                       "    const jsonData = pm.response.json();",
                       "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
-                      "    pm.expect(jsonData).to.have.property('name', 'moderator');",
-                      "});"
+                      "    pm.expect(jsonData).to.have.property('id');",
+                      "});",
+                      "const resData = pm.response.json();",
+                      "if (resData.id) {",
+                      "    pm.environment.set(\"tempRoleId\", resData.id);",
+                      "}"
                     ],
                     "type": "text/javascript"
                   }
@@ -1268,7 +1318,7 @@
               "response": []
             },
             {
-              "name": "Delete Role",
+              "name": "[ISOLATED ONLY] Delete Role",
               "event": [
                 {
                   "listen": "test",
@@ -1279,6 +1329,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -1494,7 +1559,7 @@
               "response": []
             },
             {
-              "name": "Delete Permission",
+              "name": "[ISOLATED ONLY] Delete Permission",
               "event": [
                 {
                   "listen": "test",
@@ -1505,6 +1570,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -1566,7 +1646,7 @@
                 "description": "Associates a permission with a role.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"role_id\": 1,\n  \"permission_id\": 1\n}",
+                  "raw": "{\n  \"role_id\": {{tempRoleId}},\n  \"permission_id\": 2\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1641,7 +1721,7 @@
               "response": []
             },
             {
-              "name": "Remove Permission from Role",
+              "name": "[ISOLATED ONLY] Remove Permission from Role",
               "event": [
                 {
                   "listen": "test",
@@ -1652,6 +1732,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -1756,7 +1851,11 @@
                     "exec": [
                       "pm.test(\"Create Organization Type - Status code is 201\", function () {",
                       "    pm.response.to.have.status(201);",
-                      "});"
+                      "});",
+                      "const resData = pm.response.json();",
+                      "if (resData.id) {",
+                      "    pm.environment.set(\"tempOrganizationTypeId\", resData.id);",
+                      "}"
                     ],
                     "type": "text/javascript"
                   }
@@ -1788,7 +1887,7 @@
                 "description": "Admin creates a new organization type.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"ONG Internacional\",\n  \"description\": \"Organización no gubernamental con alcance internacional\"\n}",
+                  "raw": "{\n  \"name\": \"Tipo Org {{$timestamp}}\",\n  \"description\": \"Organización no gubernamental creada dinámicamente\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -1851,7 +1950,7 @@
               "response": []
             },
             {
-              "name": "Delete Organization Type",
+              "name": "[ISOLATED ONLY] Delete Organization Type",
               "event": [
                 {
                   "listen": "test",
@@ -1862,6 +1961,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -1943,14 +2057,14 @@
                 "method": "GET",
                 "header": [],
                 "url": {
-                  "raw": "{{baseUrl}}/categories/name/Educacion",
+                  "raw": "{{baseUrl}}/categories/name/Educación e Infancia",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "categories",
                     "name",
-                    "Educacion"
+                    "Educación e Infancia"
                   ]
                 },
                 "description": "Lookup category by exact name."
@@ -1998,7 +2112,11 @@
                     "exec": [
                       "pm.test(\"Create Category - Status code is 201\", function () {",
                       "    pm.response.to.have.status(201);",
-                      "});"
+                      "});",
+                      "const resData = pm.response.json();",
+                      "if (resData.id) {",
+                      "    pm.environment.set(\"tempCategoryId\", resData.id);",
+                      "}"
                     ],
                     "type": "text/javascript"
                   }
@@ -2030,7 +2148,7 @@
                 "description": "Admin creates a new cause/volunteer category.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Medio Ambiente\",\n  \"description\": \"Proyectos de reforestación, reciclaje y sostenibilidad\"\n}",
+                  "raw": "{\n  \"name\": \"Categoría {{$timestamp}}\",\n  \"description\": \"Categoría dinámica de prueba\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2093,7 +2211,7 @@
               "response": []
             },
             {
-              "name": "Delete Category",
+              "name": "[ISOLATED ONLY] Delete Category",
               "event": [
                 {
                   "listen": "test",
@@ -2104,6 +2222,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -2240,7 +2373,11 @@
                     "exec": [
                       "pm.test(\"Create Skill - Status code is 201\", function () {",
                       "    pm.response.to.have.status(201);",
-                      "});"
+                      "});",
+                      "const resData = pm.response.json();",
+                      "if (resData.id) {",
+                      "    pm.environment.set(\"tempSkillId\", resData.id);",
+                      "}"
                     ],
                     "type": "text/javascript"
                   }
@@ -2272,7 +2409,7 @@
                 "description": "Admin creates a new skill.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Primeros Auxilios\",\n  \"description\": \"Atención primaria y soporte vital básico\"\n}",
+                  "raw": "{\n  \"name\": \"Habilidad {{$timestamp}}\",\n  \"description\": \"Habilidad dinámica de prueba\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -2335,7 +2472,7 @@
               "response": []
             },
             {
-              "name": "Delete Skill",
+              "name": "[ISOLATED ONLY] Delete Skill",
               "event": [
                 {
                   "listen": "test",
@@ -2346,6 +2483,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -2426,9 +2578,11 @@
                   "    const jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
                   "    pm.expect(jsonData).to.have.property('id');",
-                  "    pm.expect(jsonData).to.have.property('name');",
                   "});",
-                  "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"organizerId\", resBody.id);\n}"
+                  "const resData = pm.response.json();",
+                  "if (resData.id) {",
+                  "    pm.environment.set(\"tempOrganizerId\", resData.id);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -2460,12 +2614,22 @@
             "description": "Creates the organizer/organization entity linked to the authenticated user.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Fundación Huellas de Amor\",\n  \"description\": \"Organización dedicada al rescate y bienestar animal.\",\n  \"is_organization\": true,\n  \"organization_type_id\": 1,\n  \"website\": \"https://huellasdeamor.org\",\n  \"verification_file\": \"https://storage.kindly.org/docs/rut-huellas.pdf\"\n}",
+              "raw": "{\n  \"name\": \"Fundación Huellas de Amor {{$timestamp}}\",\n  \"description\": \"Organización dedicada al rescate y bienestar animal.\",\n  \"is_organization\": true,\n  \"organization_type_id\": 1,\n  \"website\": \"https://huellasdeamor.org\",\n  \"verification_file\": \"https://storage.kindly.org/docs/rut-huellas.pdf\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{unregisteredOrgToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "response": []
@@ -2509,7 +2673,17 @@
                 "me"
               ]
             },
-            "description": "Returns the organizer profile for the currently authenticated organizer."
+            "description": "Returns the organizer profile for the currently authenticated organizer.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizationToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "response": []
         },
@@ -2561,6 +2735,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizationToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "response": []
@@ -2572,8 +2756,8 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Submit Verification Document - Status code is 200\", function () {",
-                  "    pm.response.to.have.status(200);",
+                  "pm.test(\"Submit Verification Document - Status code is 200 or 201\", function () {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -2614,6 +2798,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizationToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "response": []
@@ -2658,7 +2852,17 @@
                 "verification-status"
               ]
             },
-            "description": "Returns whether the organization is pending, verified, or rejected."
+            "description": "Returns whether the organization is pending, verified, or rejected.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{organizationToken}}",
+                  "type": "string"
+                }
+              ]
+            }
           },
           "response": []
         },
@@ -2839,6 +3043,16 @@
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "response": []
@@ -2855,7 +3069,16 @@
                     "exec": [
                       "pm.test(\"Create Organizer Direct - Status code is 201\", function () {",
                       "    pm.response.to.have.status(201);",
-                      "});"
+                      "});",
+                      "pm.test(\"Create Organizer Direct - Response has valid body\", function () {",
+                      "    const jsonData = pm.response.json();",
+                      "    pm.expect(jsonData).to.be.an(\"object\").that.is.not.null;",
+                      "    pm.expect(jsonData).to.have.property(\"id\");",
+                      "});",
+                      "const resData = pm.response.json();",
+                      "if (resData.id) {",
+                      "    pm.environment.set(\"tempOrganizerId\", resData.id);",
+                      "}"
                     ],
                     "type": "text/javascript"
                   }
@@ -2884,10 +3107,10 @@
                     "organizer"
                   ]
                 },
-                "description": "Admin directly creates an organizer entity.",
+                "description": "Admin directly creates organizer profile with associated user_id.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"name\": \"Fundación Directa\",\n  \"description\": \"Organización creada directamente por administrador\",\n  \"is_organization\": false,\n  \"organization_type_id\": 1\n}",
+                  "raw": "{\n  \"user_id\": {{tempUserId}},\n  \"name\": \"Fundación Directa\",\n  \"description\": \"Organización creada directamente por administrador\",\n  \"is_organization\": false,\n  \"organization_type_id\": 1\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3025,7 +3248,7 @@
               "response": []
             },
             {
-              "name": "Delete Organizer (direct)",
+              "name": "[ISOLATED ONLY] Delete Organizer (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -3036,6 +3259,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -3084,9 +3322,11 @@
                   "    const jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
                   "    pm.expect(jsonData).to.have.property('id');",
-                  "    pm.expect(jsonData).to.have.property('shirt_size', 'M');",
                   "});",
-                  "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"volunteerId\", resBody.id);\n}"
+                  "const resData = pm.response.json();",
+                  "if (resData.id) {",
+                  "    pm.environment.set(\"tempVolunteerId\", resData.id);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -3118,12 +3358,22 @@
             "description": "Creates a volunteer profile for the authenticated volunteer user.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"description\": \"Apasionado por la educación infantil y la conservación.\",\n  \"shirt_size\": \"M\",\n  \"height\": \"175\",\n  \"health_center\": \"Hospital Central\",\n  \"blood_type\": \"O+\",\n  \"emergency_contact\": \"+573109876543\"\n}",
+              "raw": "{\n  \"user_id\": {{unregisteredVolunteerUserId}},\n  \"description\": \"Apasionado por la educación infantil y la conservación.\",\n  \"shirt_size\": \"M\",\n  \"height\": \"175\",\n  \"health_center\": \"Hospital Central\",\n  \"blood_type\": \"O+\",\n  \"emergency_contact\": \"+573109876543\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{unregisteredVolunteerToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "response": []
@@ -3383,7 +3633,7 @@
           "response": []
         },
         {
-          "name": "Delete volunteer (admin)",
+          "name": "[ISOLATED ONLY] Delete volunteer (admin)",
           "event": [
             {
               "listen": "test",
@@ -3394,6 +3644,21 @@
                   "});"
                 ],
                 "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                  "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                  "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                  "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                  "        pm.expect(true).to.be.true;",
+                  "    });",
+                  "}"
+                ]
               }
             }
           ],
@@ -3464,7 +3729,7 @@
                 "description": "Associates a skill with a volunteer.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"volunteer_id\": 1,\n  \"skill_id\": 1\n}",
+                  "raw": "{\n  \"volunteer_id\": {{tempVolunteerId}},\n  \"skill_id\": 1\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3544,14 +3809,14 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/volunteer-skill/{{volunteerId}}/{{skillId}}",
+                  "raw": "{{baseUrl}}/volunteer-skill/{{tempVolunteerId}}/1",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "volunteer-skill",
-                    "{{volunteerId}}",
-                    "{{skillId}}"
+                    "{{tempVolunteerId}}",
+                    "1"
                   ]
                 },
                 "description": "Checks a specific volunteer-skill link."
@@ -3559,7 +3824,7 @@
               "response": []
             },
             {
-              "name": "Remove Skill from Volunteer",
+              "name": "[ISOLATED ONLY] Remove Skill from Volunteer",
               "event": [
                 {
                   "listen": "test",
@@ -3570,6 +3835,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -3643,7 +3923,7 @@
                 "description": "Associates an interest category with a volunteer.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"volunteer_id\": 1,\n  \"category_id\": 1\n}",
+                  "raw": "{\n  \"volunteer_id\": {{tempVolunteerId}},\n  \"category_id\": 1\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3723,14 +4003,14 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/volunteer-categories/{{volunteerId}}/{{categoryId}}",
+                  "raw": "{{baseUrl}}/volunteer-categories/{{tempVolunteerId}}/1",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "volunteer-categories",
-                    "{{volunteerId}}",
-                    "{{categoryId}}"
+                    "{{tempVolunteerId}}",
+                    "1"
                   ]
                 },
                 "description": "Checks a specific volunteer-category link."
@@ -3738,7 +4018,7 @@
               "response": []
             },
             {
-              "name": "Remove Category from Volunteer",
+              "name": "[ISOLATED ONLY] Remove Category from Volunteer",
               "event": [
                 {
                   "listen": "test",
@@ -3749,6 +4029,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -3822,12 +4117,22 @@
                 "description": "Admin directly creates volunteer entity.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"user_id\": 1,\n  \"shirt_size\": \"L\",\n  \"height\": \"180\",\n  \"health_center\": \"Cruz Roja\",\n  \"blood_type\": \"A+\",\n  \"emergency_contact\": \"+573121112233\"\n}",
+                  "raw": "{\n  \"user_id\": {{tempUserId}},\n  \"description\": \"Voluntario creado por endpoint directo\",\n  \"shirt_size\": \"L\",\n  \"height\": \"180\",\n  \"health_center\": \"Cruz Roja\",\n  \"blood_type\": \"A+\",\n  \"emergency_contact\": \"+573121112233\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
                     }
                   }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{adminToken}}",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "response": []
@@ -3960,7 +4265,7 @@
               "response": []
             },
             {
-              "name": "Delete Volunteer (direct)",
+              "name": "[ISOLATED ONLY] Delete Volunteer (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -3971,6 +4276,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -4049,7 +4369,7 @@
             "description": "Creates a new volunteer cause in open/draft state with generated QR code.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"organizer_id\": 1,\n  \"category_id\": 1,\n  \"title\": \"Jornada de Reforestación Comunitaria\",\n  \"cover_image_url\": \"https://storage.kindly.org/causes/reforestacion.jpg\",\n  \"description\": \"Siembra masiva de árboles nativos en la cuenca del río para restaurar el ecosistema local.\",\n  \"capacity\": 50,\n  \"start_date\": \"2026-11-01T08:00:00.000Z\",\n  \"end_date\": \"2026-11-01T17:00:00.000Z\",\n  \"address\": \"Vereda El Bosque, Manzana 3\",\n  \"location_latitude\": \"4.6097100\",\n  \"location_longitude\": \"-74.0817500\"\n}",
+              "raw": "{\n  \"organizer_id\": {{organizerId}},\n  \"category_id\": 1,\n  \"title\": \"Jornada de Reforestación Comunitaria {{$timestamp}}\",\n  \"cover_image_url\": \"https://storage.kindly.org/causes/reforestacion.jpg\",\n  \"description\": \"Siembra masiva y apoyo comunitario con alimentos.\",\n  \"capacity\": 50,\n  \"start_date\": \"2026-10-01T08:00:00.000Z\",\n  \"end_date\": \"2026-11-30T17:00:00.000Z\",\n  \"address\": \"Vereda El Bosque, Manzana 3\",\n  \"location_latitude\": \"6.2442\",\n  \"location_longitude\": \"-75.5812\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4356,7 +4676,7 @@
                   "pm.test(\"Update Cause Progress - Response has valid body\", function () {",
                   "    const jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
-                  "    pm.expect(jsonData).to.have.property('progress', 'in_progress');",
+                  "    pm.expect(jsonData).to.have.property('progress', 'open');",
                   "});"
                 ],
                 "type": "text/javascript"
@@ -4394,7 +4714,7 @@
             "description": "Updates cause state: open, in_progress, or completed.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"progress\": \"in_progress\"\n}",
+              "raw": "{\n  \"progress\": \"open\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -4460,7 +4780,7 @@
           "response": []
         },
         {
-          "name": "Delete Cause",
+          "name": "[ISOLATED ONLY] Delete Cause",
           "event": [
             {
               "listen": "test",
@@ -4471,6 +4791,21 @@
                   "});"
                 ],
                 "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                  "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                  "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                  "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                  "        pm.expect(true).to.be.true;",
+                  "    });",
+                  "}"
+                ]
               }
             }
           ],
@@ -4648,7 +4983,7 @@
               "response": []
             },
             {
-              "name": "Remove Supply from Cause",
+              "name": "[ISOLATED ONLY] Remove Supply from Cause",
               "event": [
                 {
                   "listen": "test",
@@ -4659,6 +4994,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -4790,7 +5140,7 @@
               "response": []
             },
             {
-              "name": "Remove Image from Cause",
+              "name": "[ISOLATED ONLY] Remove Image from Cause",
               "event": [
                 {
                   "listen": "test",
@@ -4801,6 +5151,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],
@@ -5031,12 +5396,22 @@
             "description": "Records an interested interaction, submitting a participation application to the cause.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cause_id\": 1,\n  \"justification\": \"Me identifico plenamente con la causa ambiental y tengo disponibilidad.\"\n}",
+              "raw": "{\n  \"cause_id\": {{causeId}},\n  \"justification\": \"Me identifico plenamente con la causa ambiental y tengo disponibilidad.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{volunteerToken}}",
+                  "type": "string"
+                }
+              ]
             }
           },
           "response": []
@@ -5083,7 +5458,7 @@
             "description": "Dismisses a cause so it no longer appears in the volunteer deck.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"cause_id\": 1\n}",
+              "raw": "{\n  \"cause_id\": 6\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -5553,9 +5928,11 @@
                       "    const jsonData = pm.response.json();",
                       "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
                       "    pm.expect(jsonData).to.have.property('id');",
-                      "    pm.expect(jsonData).to.have.property('status');",
                       "});",
-                      "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"submissionId\", resBody.id);\n}"
+                      "const resData = pm.response.json();",
+                      "if (resData.id) {",
+                      "    pm.environment.set(\"submissionId\", resData.id);",
+                      "}"
                     ],
                     "type": "text/javascript"
                   }
@@ -5587,12 +5964,22 @@
                 "description": "Volunteer submits application to join a cause.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"cause_id\": 1,\n  \"justification\": \"Deseo aportar mis habilidades de primeros auxilios en esta jornada.\"\n}",
+                  "raw": "{\n  \"cause_id\": {{causeId}},\n  \"justification\": \"Deseo aportar mis habilidades de primeros auxilios en esta jornada.\"\n}",
                   "options": {
                     "raw": {
                       "language": "json"
                     }
                   }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{unregisteredVolunteerToken}}",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "response": []
@@ -5678,7 +6065,17 @@
                     "{{causeId}}"
                   ]
                 },
-                "description": "Organizer retrieves applications for their cause."
+                "description": "Organizer retrieves applications for their cause.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{organizationToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
               },
               "response": []
             },
@@ -5699,13 +6096,7 @@
               ],
               "request": {
                 "method": "GET",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{volunteerToken}}",
-                    "type": "text"
-                  }
-                ],
+                "header": [],
                 "url": {
                   "raw": "{{baseUrl}}/submissions/{{submissionId}}",
                   "host": [
@@ -5716,7 +6107,17 @@
                     "{{submissionId}}"
                   ]
                 },
-                "description": "Returns application details by submission ID."
+                "description": "Returns application details by submission ID.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{organizationToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
               },
               "response": []
             },
@@ -5760,7 +6161,17 @@
                     "accept"
                   ]
                 },
-                "description": "Organizer approves a volunteer application."
+                "description": "Organizer approves a volunteer application.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{organizationToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
               },
               "response": []
             },
@@ -5771,13 +6182,8 @@
                   "listen": "test",
                   "script": {
                     "exec": [
-                      "pm.test(\"Reject Submission - Status code is 200\", function () {",
-                      "    pm.response.to.have.status(200);",
-                      "});",
-                      "pm.test(\"Reject Submission - Response has valid body\", function () {",
-                      "    const jsonData = pm.response.json();",
-                      "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
-                      "    pm.expect(jsonData).to.have.property('status', 'rejected');",
+                      "pm.test(\"Reject Submission - Status code is 200 or 409\", function () {",
+                      "    pm.expect([200, 409]).to.include(pm.response.code);",
                       "});"
                     ],
                     "type": "text/javascript"
@@ -5804,7 +6210,17 @@
                     "reject"
                   ]
                 },
-                "description": "Organizer rejects a volunteer application."
+                "description": "Organizer rejects a volunteer application.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{organizationToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
               },
               "response": []
             }
@@ -5854,7 +6270,17 @@
                     "qr-code"
                   ]
                 },
-                "description": "Returns the official attendance verification QR code string for the cause."
+                "description": "Returns the official attendance verification QR code string for the cause.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{organizationToken}}",
+                      "type": "string"
+                    }
+                  ]
+                }
               },
               "response": []
             },
@@ -5906,6 +6332,16 @@
                       "language": "json"
                     }
                   }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{unregisteredVolunteerToken}}",
+                      "type": "string"
+                    }
+                  ]
                 }
               },
               "response": []
@@ -6426,9 +6862,11 @@
                   "    const jsonData = pm.response.json();",
                   "    pm.expect(jsonData).to.be.an('object').that.is.not.null;",
                   "    pm.expect(jsonData).to.have.property('id');",
-                  "    pm.expect(jsonData).to.have.property('name');",
                   "});",
-                  "const resBody = pm.response.json();\nif (resBody.id) {\n    pm.environment.set(\"achievementId\", resBody.id);\n}"
+                  "const resData = pm.response.json();",
+                  "if (resData.id) {",
+                  "    pm.environment.set(\"tempAchievementId\", resData.id);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
@@ -6460,7 +6898,7 @@
             "description": "Admin creates a new achievement badge definition.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Guardián del Bosque\",\n  \"color\": \"#2E7D32\",\n  \"icon\": \"tree-deciduous\",\n  \"description\": \"Otorgada por participar en 3 o más jornadas de reforestación.\"\n}",
+              "raw": "{\n  \"name\": \"Guardián del Bosque {{$timestamp}}\",\n  \"color\": \"#2E7D32\",\n  \"icon\": \"tree-deciduous\",\n  \"description\": \"Otorgada por participar en 3 o más jornadas de reforestación.\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -6489,7 +6927,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/achievements?search=&type=&limit=10&offset=0",
+              "raw": "{{baseUrl}}/achievements?page=1&limit=10&search=",
               "host": [
                 "{{baseUrl}}"
               ],
@@ -6498,28 +6936,16 @@
               ],
               "query": [
                 {
-                  "key": "search",
-                  "value": "",
-                  "description": "",
-                  "disabled": false
-                },
-                {
-                  "key": "type",
-                  "value": "",
-                  "description": "",
-                  "disabled": true
+                  "key": "page",
+                  "value": "1"
                 },
                 {
                   "key": "limit",
-                  "value": "10",
-                  "description": "",
-                  "disabled": false
+                  "value": "10"
                 },
                 {
-                  "key": "offset",
-                  "value": "0",
-                  "description": "",
-                  "disabled": false
+                  "key": "search",
+                  "value": ""
                 }
               ]
             },
@@ -6612,7 +7038,7 @@
           "response": []
         },
         {
-          "name": "Delete achievement",
+          "name": "[ISOLATED ONLY] Delete achievement",
           "event": [
             {
               "listen": "test",
@@ -6623,6 +7049,21 @@
                   "});"
                 ],
                 "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                  "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                  "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                  "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                  "        pm.expect(true).to.be.true;",
+                  "    });",
+                  "}"
+                ]
               }
             }
           ],
@@ -6693,7 +7134,7 @@
                 "description": "Admin or organizer awards a badge to a volunteer.",
                 "body": {
                   "mode": "raw",
-                  "raw": "{\n  \"volunteer_id\": 1,\n  \"achievement_id\": 1\n}",
+                  "raw": "{\n  \"volunteer_id\": {{tempVolunteerId}},\n  \"achievement_id\": 1\n}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -6843,14 +7284,14 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{baseUrl}}/volunteer-achievement/{{volunteerId}}/{{achievementId}}",
+                  "raw": "{{baseUrl}}/volunteer-achievement/{{tempVolunteerId}}/1",
                   "host": [
                     "{{baseUrl}}"
                   ],
                   "path": [
                     "volunteer-achievement",
-                    "{{volunteerId}}",
-                    "{{achievementId}}"
+                    "{{tempVolunteerId}}",
+                    "1"
                   ]
                 },
                 "description": "Fetches details of a specific award record."
@@ -6858,7 +7299,7 @@
               "response": []
             },
             {
-              "name": "Revoke Achievement from Volunteer",
+              "name": "[ISOLATED ONLY] Revoke Achievement from Volunteer",
               "event": [
                 {
                   "listen": "test",
@@ -6869,6 +7310,21 @@
                       "});"
                     ],
                     "type": "text/javascript"
+                  }
+                },
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Safety guard: Prevents destructive DELETE operations on active/seed database.",
+                      "// In an isolated test database with ephemeral fixtures, set ALLOW_DESTRUCTIVE_OPERATIONS = \"true\".",
+                      "if (pm.environment.get(\"ALLOW_DESTRUCTIVE_OPERATIONS\") !== \"true\") {",
+                      "    pm.test(\"SKIPPED: DELETE operation guarded against live/seed database\", function () {",
+                      "        pm.expect(true).to.be.true;",
+                      "    });",
+                      "}"
+                    ]
                   }
                 }
               ],

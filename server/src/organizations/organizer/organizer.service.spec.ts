@@ -188,6 +188,46 @@ describe('OrganizerService', () => {
             expect(organizerRepository.save).not.toHaveBeenCalled();
         });
 
+        it('should create organizer profile using user_id from DTO when userId argument is omitted', async () => {
+            const dtoWithUserId: CreateOrganizerDto = {
+                ...orgDto,
+                user_id: 30,
+            };
+            organizerRepository.findOneBy.mockResolvedValue(null);
+            const savedEntity = createMockOrganizer({
+                id: 18,
+                ...dtoWithUserId,
+                user_id: 30,
+                verification_status: 'pending',
+            });
+            organizerRepository.save.mockResolvedValue(savedEntity);
+            organizerRepository.findOne.mockResolvedValue(savedEntity);
+
+            const result = await service.create(dtoWithUserId);
+
+            expect(organizerRepository.findOneBy).toHaveBeenCalledWith({ user_id: 30 });
+            expect(organizerRepository.create).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    user_id: 30,
+                }),
+            );
+            expect(result.id).toBe(18);
+        });
+
+        it('should throw ConflictException when organizer already exists for user_id in DTO', async () => {
+            const dtoWithUserId: CreateOrganizerDto = {
+                ...orgDto,
+                user_id: 30,
+            };
+            const existingOrganizer = createMockOrganizer({ user_id: 30 });
+            organizerRepository.findOneBy.mockResolvedValue(existingOrganizer);
+
+            await expect(service.create(dtoWithUserId)).rejects.toThrow(ConflictException);
+            await expect(service.create(dtoWithUserId)).rejects.toThrow(
+                "Organizer profile already exists for user_id '30'",
+            );
+        });
+
         it('should propagate repository error when save fails', async () => {
             organizerRepository.findOneBy.mockResolvedValue(null);
             organizerRepository.save.mockRejectedValue(new Error('DB Save Connection Failure'));
