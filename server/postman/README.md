@@ -1,4 +1,4 @@
-# Kindly Backend — Postman API Collection & Environment
+# Kindly API — Postman Collection & Environment
 
 Este directorio contiene la colección de Postman y el entorno local para la prueba integral de los endpoints HTTP del backend de Kindly (**NestJS + TypeORM + PostgreSQL**).
 
@@ -6,20 +6,21 @@ Este directorio contiene la colección de Postman y el entorno local para la pru
 
 ## 1. Archivos Incluidos
 
-- **`Kindly-Backend.postman_collection.json`**: Colección completa estructurada en 10 carpetas modulares que representan todos los módulos y controladores implementados en la rama activa.
-- **`Kindly-Local.postman_environment.json`**: Entorno local preconfigurado con variables base (`baseUrl`), tokens JWT dinámicos (`adminToken`, `volunteerToken`, `organizationToken`, `authToken`) e IDs de prueba.
-- **`README.md`**: Esta guía de importación, configuración y ejecución.
+- **`Kindly-Backend.postman_collection.json`**: Colección completa (`Kindly API`) organizada en 10 carpetas por dominio de negocio, abarcando todos los módulos y controladores expuestos en la rama activa.
+- **`Kindly-Local.postman_environment.json`**: Entorno local (`Kindly Local`) preconfigurado con variables base (`baseUrl`), tokens JWT dinámicos (`adminToken`, `volunteerToken`, `organizationToken`, `authToken`), coordenadas geográficas e IDs de prueba.
+- **`README.md`**: Esta guía de importación, configuración, ejecución y especificación de endpoints.
 
 ---
 
 ## 2. Prerrequisitos de Ejecución
 
 1. **Instancia de PostgreSQL Activa**:
-   - Por defecto, la aplicación se conecta al puerto `5433` (o según variable `POSTGRES_PORT` en `.env`).
-   - Base de datos configurada: `kindly_db`.
+   - Puerto por defecto: `5433` (configurable en `server/.env` vía `POSTGRES_PORT`).
+   - Base de datos requerida: `kindly_db`.
 2. **Variables de Entorno del Backend (`server/.env`)**:
-   - Verificar la configuración en `server/.env` (tomando como base `server/.env.example`).
-   - El puerto por defecto configurado en `main.ts` es el **`3001`** (`process.env.PORT ?? 3001`). Por lo tanto, `baseUrl` en Postman apunta a `http://localhost:3001`.
+   - Verificar la configuración local tomando como base `server/.env.example`.
+   - Puerto del servidor en `main.ts`: **`3001`** (`process.env.PORT ?? 3001`).
+   - La variable `baseUrl` en Postman apunta a `http://localhost:3001`.
 3. **Servidor en Ejecución**:
    ```bash
    cd server
@@ -31,71 +32,119 @@ Este directorio contiene la colección de Postman y el entorno local para la pru
 ## 3. Instrucciones de Importación en Postman
 
 1. Abre **Postman**.
-2. Haz clic en el botón **Import** (esquina superior izquierda).
-3. Arrastra o selecciona los dos archivos JSON:
+2. Haz clic en **Import** (esquina superior izquierda).
+3. Selecciona o arrastra los dos archivos:
    - `Kindly-Backend.postman_collection.json`
    - `Kindly-Local.postman_environment.json`
-4. En la esquina superior derecha de Postman, selecciona el entorno activo: **`Kindly - Local Environment`**.
+4. En el selector de entorno (esquina superior derecha), activa: **`Kindly Local`**.
 
 ---
 
-## 4. Estructura de la Colección y Flujo Recomendado de Ejecución
+## 4. Estructura de la Colección y Flujo de Trabajo
 
-Para ejecutar las pruebas en orden lógico respetando las dependencias de datos:
+La colección `Kindly API` está estructurada en carpetas temáticas para reflejar el ciclo de vida de la aplicación:
 
 ```mermaid
 flowchart TD
-    A["01. Authentication<br/>(Register & Login)"] --> B["02. Users & RBAC<br/>(Roles & Permisos)"]
-    A --> C["03. Catalogs<br/>(Tipos Org, Categorías, Skills)"]
-    C --> D["04. Organizations & 05. Volunteers<br/>(Creación y Verificación de Perfiles)"]
-    D --> E["06. Causes, Supplies & Media<br/>(Creación, Publicación, Insumos)"]
-    E --> F["07. Matches & Discovery<br/>(Deck con Afinidad, Mapa Interactivo)"]
-    E --> G["08. Participations & Attendance<br/>(Postulación y Check-in QR)"]
-    E --> H["09. Announcements & Social<br/>(Noticias, Fotos y Likes)"]
-    G --> I["10. Achievements & Badges<br/>(Otorgamiento y Consulta)"]
+    A["Auth<br/>(Register & Login)"] --> B["Users<br/>(Roles & Permisos)"]
+    A --> C["Catalogs<br/>(Tipos Org, Categorías, Skills)"]
+    C --> D["Organizations & Volunteers<br/>(Perfiles y Verificación)"]
+    D --> E["Causes<br/>(Creación, Publicación, Insumos)"]
+    E --> F["Matches<br/>(Feed Afinidad, Mapa Interactivo & Geo)"]
+    E --> G["Participations<br/>(Postulaciones y Check-in QR)"]
+    E --> H["Announcements<br/>(Noticias, Fotos y Likes)"]
+    G --> I["Achievements<br/>(Insignias y Gamificación)"]
 ```
 
-### Detalle de Carpetas
+### Organización por Dominios
 
-| Carpeta | Descripción | Autenticación Principal |
+| Carpeta | Descripción | Autenticación Requerida |
 | :--- | :--- | :--- |
-| **01. Authentication** | Registro de voluntarios y organizadores, login de roles y obtención de perfil actual. Las peticiones de Login guardan automáticamente los tokens en el entorno (`adminToken`, `volunteerToken`, `organizationToken`). | Pública / Bearer |
-| **02. Users & RBAC** | Gestión administrativa de usuarios (filtros, activación, cambio de rol), roles, permisos y mapeo rol-permiso. | Admin (`adminToken`) |
-| **03. Catalogs** | Tipos de organización, categorías temáticas y habilidades de voluntariado. | Pública / Admin |
-| **04. Organizations** | Creación de perfil de organización, envío de documento de verificación, consulta de estado y aprobación administrativa. | Organizador (`organizationToken`) / Admin |
-| **05. Volunteers** | Perfil de voluntario, asignación de habilidades y categorías de interés. | Voluntario (`volunteerToken`) / Admin |
-| **06. Causes, Supplies & Media** | Creación de causas, publicación, verificación de cupos, insumos necesarios y galería fotográfica. | Organizador (`organizationToken`) |
-| **07. Matches & Discovery** | Deck de causas con puntuación de afinidad (**US-3.2.3**), swipe right (postulación), swipe left (descarte) y mapa interactivo con pines y vista previa (**US-3.3.3**). | Voluntario (`volunteerToken`) |
-| **08. Participations & Attendance** | Postulación de voluntarios a causas, aceptación/rechazo por organizador, generación de código QR y check-in presencial. | Voluntario / Organizador |
-| **09. Announcements & Social** | Publicación de comunicados y noticias por causa, fotos adjuntas y sistema de likes comunitarios. | Organizador / Voluntario |
-| **10. Achievements & Badges** | Consulta de insignias ganadas, creación de insignias por admin y otorgamiento a voluntarios destacados. | Voluntario / Admin |
+| **Auth** | Registro e inicio de sesión de voluntarios y organizadores, consulta de perfil (`/auth/profile`) y validaciones de credenciales. Los logins actualizan automáticamente los tokens correspondientes en el entorno. | Pública / Bearer |
+| **Users** | Administración de usuarios (filtros, activación, cambio de rol), roles del sistema, permisos granulares y asignación rol-permiso. Incluye subcarpeta de scaffolding directo. | Admin (`adminToken`) |
+| **Catalogs** | Taxonomía base del sistema: tipos de organizaciones, categorías temáticas de voluntariado y catálogo de habilidades. | Pública / Admin |
+| **Organizations** | Creación y actualización de perfiles de organización, envío de documentos legales de soporte, consulta de estado de verificación y revisión administrativa. | Organizador (`organizationToken`) / Admin |
+| **Volunteers** | Perfil de voluntario, asignación de habilidades (`Volunteer Skills`) e intereses temáticos (`Volunteer Categories`). | Voluntario (`volunteerToken`) / Admin |
+| **Causes** | Creación de causas, publicación, control de cupos, insumos requeridos (`Supplies`) y galería de imágenes (`Cause Images`). | Organizador (`organizationToken`) |
+| **Matches** | Algoritmos de descubrimiento y afinidad: feed swipe (`Get cause deck`), feed personalizado (`Get personalized feed`), interacción swipe right/left, mapa interactivo (`pins`, `preview`), búsqueda radial (`nearby`) y caja delimitadora (`area`). | Voluntario (`volunteerToken`) |
+| **Participations** | Postulación de voluntarios a causas, aceptación o rechazo por el organizador, generación de código QR y validación presencial de asistencia. | Voluntario / Organizador |
+| **Announcements** | Publicación de noticias y actualizaciones por causa, adjuntos fotográficos y sistema comunitario de likes. | Organizador / Voluntario |
+| **Achievements** | Catálogo de insignias y logros, otorgamiento a voluntarios y consulta de insignias ganadas por usuario. | Voluntario / Admin |
 
 ---
 
-## 5. Gestión de Tokens y Variables Dinámicas
+## 5. Endpoints de Descubrimiento y Matching (`Matches`)
 
-Las peticiones clave incluyen scripts en la pestaña **Tests** para extraer y almacenar variables automáticamente:
+La carpeta **Matches** contiene la implementación completa de descubrimiento geográfico y afinidad:
 
-- **`POST /auth/login` (Admin)**: Actualiza `adminToken`, `authToken` y `userId`.
-- **`POST /auth/login` (Volunteer)**: Actualiza `volunteerToken`, `authToken` y `userId`.
-- **`POST /auth/login` (Organizer)**: Actualiza `organizationToken`, `authToken` y `userId`.
-- **`POST /causes`**: Almacena el `causeId` y el `attendanceQrCode` generado.
-- **`POST /submissions`**: Almacena el `submissionId`.
-- **`POST /organizations`**: Almacena el `organizerId`.
-- **`POST /volunteers`**: Almacena el `volunteerId`.
-- **`POST /achievements`**: Almacena el `achievementId`.
+1. **`Get cause deck`** (`GET /matches/deck?limit=10&page=1`):
+   - Genera el mazo de causas disponibles con cálculo dinámico de puntuación de afinidad (**US-3.2.3**).
+2. **`Get personalized feed`** (`GET /matches/for-you?page=1&limit=10`):
+   - Feed recomendado ordenado por afinidad y cupos disponibles con paginación.
+3. **`Apply to cause (swipe right)`** (`POST /matches`):
+   - Postulación automática a una causa con justificación generada por el sistema.
+4. **`Dismiss cause (swipe left)`** (`POST /matches/dismiss`):
+   - Descarte de causa en el mazo de exploración.
+5. **`Get interactive map pins`** (`GET /matches/map/pins`):
+   - Lista ligera de pines con coordenadas y categoría (**US-3.3.3**).
+6. **`Explore nearby causes`** (`GET /matches/map/nearby?lat={{lat}}&lng={{lng}}&radius_km={{radiusKm}}`):
+   - Búsqueda geográfica radial ordenada por distancia ascendente en kilómetros.
+   - Incluye caso negativo: coordenadas inválidas (`lat=999`) &rarr; 400 Bad Request.
+7. **`Explore causes in map area`** (`GET /matches/map/area?north={{north}}&south={{south}}&east={{east}}&west={{west}}`):
+   - Filtro de pines dentro de un rectángulo delimitador (Bounding Box).
+   - Incluye caso negativo: límites invertidos (`south > north`) &rarr; 400 Bad Request.
+8. **`Get cause preview`** (`GET /matches/map/preview/{{causeId}}`):
+   - Tarjeta detallada con información de la organización, cupos y estado para visualización al pulsar un pin.
+9. **`Get cause deck without auth`** (`GET /matches/deck`):
+   - Prueba negativa que verifica la respuesta `401 Unauthorized` ante la ausencia de token.
 
 ---
 
-## 6. Auditoría de Rutas y Estado de Historias de Usuario
+## 6. Auditoría de Requisitos y Rutas No Implementadas
 
-Durante la inspección del código fuente de la rama activa se verificaron las siguientes historias de usuario:
+Durante la auditoría del código fuente en la rama activa se identificaron las siguientes particularidades:
 
-- **US-3.2.3 (Feed Personalizado por Afinidad)**:  
-  **Implementado** en `GET /matches/deck` ([`server/src/matches/matches.controller.ts`](file:///c:/Users/HANNA%20MURIEL/Desktop/Universidad/Web/backend-kindly-app-262/server/src/matches/matches.controller.ts)). Calcula compatibilidad a partir de las habilidades y categorías de interés del voluntario vs. la causa.
-- **US-3.3.3 (Navegación en Mapa y Vista Previa)**:  
-  **Implementado** en `GET /matches/map/pins` y `GET /matches/map/preview/:causeId` ([`server/src/matches/matches.controller.ts`](file:///c:/Users/HANNA%20MURIEL/Desktop/Universidad/Web/backend-kindly-app-262/server/src/matches/matches.controller.ts)).
 - **US-3.3.1 (Búsqueda de Causas por Palabra Clave)**:  
-  **No implementado** en la rama activa. En [`server/src/causes/causes.controller.ts`](file:///c:/Users/HANNA%20MURIEL/Desktop/Universidad/Web/backend-kindly-app-262/server/src/causes/causes.controller.ts), el endpoint `GET /causes` no recibe parámetros de búsqueda de texto ni filtros ILIKE en `causes.service.ts`.
+  **No implementado** en el backend. El controlador [`server/src/causes/causes.controller.ts`](file:///c:/Users/HANNA%20MURIEL/Desktop/Universidad/Web/backend-kindly-app-262/server/src/causes/causes.controller.ts) y su servicio no aceptan parámetros `search` o `keyword` en `GET /causes`. Por este motivo, la colección no incluye solicitudes ficticias con dichos parámetros.
 - **US-3.3.2 (Filtrado de Causas por Categoría)**:  
-  **No implementado** en la rama activa. `GET /causes` no expone parámetro `category_id` en `causes.controller.ts` ni en su servicio.
+  **No implementado** en `GET /causes`. Los filtros por categoría en el backend se gestionan mediante el algoritmo de afinidad en `/matches/*` y no a través de query params en el listado genérico de causas.
+
+---
+
+## 7. Gestión de Tokens y Datos de Prueba
+
+El entorno `Kindly Local` utiliza marcadores de posición (*placeholders*) seguros para el desarrollo local:
+
+| Variable | Valor por Defecto | Propósito |
+| :--- | :--- | :--- |
+| `baseUrl` | `http://localhost:3001` | URL base de la API de NestJS |
+| `adminEmail` | `admin@kindly.org` | Correo de prueba para cuenta Administrador |
+| `adminPassword` | `AdminPass123!` | Contraseña de desarrollo local (placeholder) |
+| `volunteerEmail`| `volunteer@kindly.org` | Correo de prueba para Voluntario |
+| `volunteerPassword`| `VolunteerPass123!` | Contraseña de desarrollo local (placeholder) |
+| `organizationEmail`| `org@kindly.org` | Correo de prueba para Organizador |
+| `organizationPassword`| `OrgPass123!` | Contraseña de desarrollo local (placeholder) |
+| `adminToken` | *(capturado en login)* | Bearer token para endpoints administrativos |
+| `volunteerToken` | *(capturado en login)* | Bearer token para endpoints de voluntario |
+| `organizationToken`| *(capturado en login)* | Bearer token para endpoints de organizador |
+| `lat`, `lng` | `4.6097`, `-74.0817` | Coordenadas de prueba (Bogotá) |
+| `radiusKm` | `10` | Radio de búsqueda radial por defecto |
+| `north`, `south`, `east`, `west` | `4.80`, `4.50`, `-73.90`, `-74.20` | Bounding box para pruebas de área geográfica |
+
+### Prerrequisitos de Datos en Base de Datos
+
+Para ejecutar con éxito las pruebas que dependen de registros persistidos:
+1. **Roles y Permisos**: La base de datos debe contener los roles `admin`, `volunteer` y `organizer`, así como el permiso `participate_causes` asignado al rol `volunteer`.
+2. **Taxonomía**: Debe existir al menos un `organization_type`, una `category` y un `skill` registrados.
+3. **Flujo de Dependencias**:
+   - Ejecutar `POST Login as Volunteer` para poblar `volunteerToken`.
+   - Ejecutar `POST Login as Admin` para poblar `adminToken`.
+   - Ejecutar `POST Login as Organizer` para poblar `organizationToken`.
+   - Al crear una causa con `POST Create Cause`, el script de prueba captura automáticamente `causeId` en el entorno para las siguientes peticiones.
+
+---
+
+## 8. Validación de Archivos
+
+- **Validación Estática**: Se verifica que los archivos JSON tengan sintaxis válida, identificadores únicos y concordancia del 100% con los decoradores de rutas de los controladores en NestJS.
+- **Validación HTTP en Vivo**: Requiere que la base de datos PostgreSQL local esté iniciada y el comando `npm run start:dev` se encuentre en ejecución antes de lanzar la suite desde Postman Runner.

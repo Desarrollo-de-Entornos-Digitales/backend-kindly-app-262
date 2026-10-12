@@ -1,17 +1,17 @@
 {
   "info": {
     "_postman_id": "dbf8997a-8384-4c01-abd6-749d68ec4665",
-    "name": "Kindly Backend API",
-    "description": "Comprehensive Postman collection for the Kindly NestJS volunteer and organization matching platform. Covers all 10 modules, 34 controllers, and all verified HTTP endpoints in the active branch.",
+    "name": "Kindly API",
+    "description": "Comprehensive API collection for the Kindly volunteer platform (NestJS + TypeORM + PostgreSQL). Covers authentication, user and role management, taxonomy catalogs, organizations, volunteers, causes and supplies, discovery and match feeds, participations and QR attendance, announcements, and achievements.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "01. Authentication",
+      "name": "Auth",
       "description": "Endpoints for registration, login, JWT token issuance, and current user profile.",
       "item": [
         {
-          "name": "[Create] Register Volunteer",
+          "name": "Register Volunteer",
           "event": [
             {
               "listen": "test",
@@ -64,7 +64,7 @@
           "response": []
         },
         {
-          "name": "[Create] Register Organizer",
+          "name": "Register Organizer",
           "event": [
             {
               "listen": "test",
@@ -322,7 +322,7 @@
           "response": []
         },
         {
-          "name": "[Negative] Login with Invalid Credentials",
+          "name": "Login with Invalid Credentials",
           "event": [
             {
               "listen": "test",
@@ -369,7 +369,7 @@
           "response": []
         },
         {
-          "name": "[Negative] Register with Invalid Role",
+          "name": "Register with Invalid Role",
           "event": [
             {
               "listen": "test",
@@ -418,11 +418,11 @@
       ]
     },
     {
-      "name": "02. Users & RBAC",
+      "name": "Users",
       "description": "Endpoints for user management, role assignment, permissions, and role-permission associations.",
       "item": [
         {
-          "name": "Users Management (Admin)",
+          "name": "User Management",
           "item": [
             {
               "name": "List Users with Filters",
@@ -537,7 +537,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update User Status",
+              "name": "Update User Status",
               "event": [
                 {
                   "listen": "test",
@@ -595,7 +595,7 @@
               "response": []
             },
             {
-              "name": "[Update] Assign Role to User",
+              "name": "Assign Role to User",
               "event": [
                 {
                   "listen": "test",
@@ -648,7 +648,7 @@
               "response": []
             },
             {
-              "name": "[Negative] List Users Unauthorized",
+              "name": "List users without auth",
               "event": [
                 {
                   "listen": "test",
@@ -681,10 +681,10 @@
           ]
         },
         {
-          "name": "User CRUD Scaffolding",
+          "name": "User Scaffolding",
           "item": [
             {
-              "name": "[Create] Create User (Direct)",
+              "name": "Create User (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -730,7 +730,7 @@
               "response": []
             },
             {
-              "name": "List All Users (Scaffolding)",
+              "name": "List users (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -761,7 +761,7 @@
               "response": []
             },
             {
-              "name": "Get User by ID (Scaffolding)",
+              "name": "Get User by ID (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -892,7 +892,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update User (Scaffolding)",
+              "name": "Update User (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -939,7 +939,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update User Status (Scaffolding)",
+              "name": "Update User Status (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -987,7 +987,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update User Role (Scaffolding)",
+              "name": "Update User Role (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -1035,7 +1035,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Remove User (Scaffolding)",
+              "name": "Remove User (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -1072,7 +1072,7 @@
           "name": "Roles",
           "item": [
             {
-              "name": "[Create] Create Role",
+              "name": "Create Role",
               "event": [
                 {
                   "listen": "test",
@@ -1219,7 +1219,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update Role",
+              "name": "Update Role",
               "event": [
                 {
                   "listen": "test",
@@ -1266,7 +1266,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Delete Role",
+              "name": "Delete Role",
               "event": [
                 {
                   "listen": "test",
@@ -1303,7 +1303,7 @@
           "name": "Permissions",
           "item": [
             {
-              "name": "[Create] Create Permission",
+              "name": "Create Permission",
               "event": [
                 {
                   "listen": "test",
@@ -1445,7 +1445,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update Permission",
+              "name": "Update Permission",
               "event": [
                 {
                   "listen": "test",
@@ -1492,7 +1492,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Delete Permission",
+              "name": "Delete Permission",
               "event": [
                 {
                   "listen": "test",
@@ -1526,10 +1526,10 @@
           ]
         },
         {
-          "name": "Role-Permissions",
+          "name": "Role Permissions",
           "item": [
             {
-              "name": "[Create] Assign Permission to Role",
+              "name": "Assign Permission to Role",
               "event": [
                 {
                   "listen": "test",
@@ -1639,7 +1639,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Remove Permission from Role",
+              "name": "Remove Permission from Role",
               "event": [
                 {
                   "listen": "test",
@@ -1676,7 +1676,7 @@
       ]
     },
     {
-      "name": "03. Catalogs",
+      "name": "Catalogs",
       "description": "System taxonomy: Organization Types, Volunteer Categories, and Volunteer Skills.",
       "item": [
         {
@@ -1746,7 +1746,7 @@
               "response": []
             },
             {
-              "name": "[Create] Create Organization Type",
+              "name": "Create Organization Type",
               "event": [
                 {
                   "listen": "test",
@@ -1797,7 +1797,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update Organization Type",
+              "name": "Update Organization Type",
               "event": [
                 {
                   "listen": "test",
@@ -1849,7 +1849,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Delete Organization Type",
+              "name": "Delete Organization Type",
               "event": [
                 {
                   "listen": "test",
@@ -1988,7 +1988,7 @@
               "response": []
             },
             {
-              "name": "[Create] Create Category",
+              "name": "Create Category",
               "event": [
                 {
                   "listen": "test",
@@ -2039,7 +2039,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update Category",
+              "name": "Update Category",
               "event": [
                 {
                   "listen": "test",
@@ -2091,7 +2091,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Delete Category",
+              "name": "Delete Category",
               "event": [
                 {
                   "listen": "test",
@@ -2230,7 +2230,7 @@
               "response": []
             },
             {
-              "name": "[Create] Create Skill",
+              "name": "Create Skill",
               "event": [
                 {
                   "listen": "test",
@@ -2281,7 +2281,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update Skill",
+              "name": "Update Skill",
               "event": [
                 {
                   "listen": "test",
@@ -2333,7 +2333,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Delete Skill",
+              "name": "Delete Skill",
               "event": [
                 {
                   "listen": "test",
@@ -2375,7 +2375,7 @@
       ]
     },
     {
-      "name": "04. Organizations",
+      "name": "Organizations",
       "description": "Endpoints for organization profile, verification workflows, and admin audit.",
       "item": [
         {
@@ -2411,7 +2411,7 @@
           "response": []
         },
         {
-          "name": "[Create] Create Organization Profile",
+          "name": "Create Organization Profile",
           "event": [
             {
               "listen": "test",
@@ -2512,7 +2512,7 @@
           "response": []
         },
         {
-          "name": "[Update] Update My Organization Profile",
+          "name": "Update My Organization Profile",
           "event": [
             {
               "listen": "test",
@@ -2564,7 +2564,7 @@
           "response": []
         },
         {
-          "name": "[Create] Submit Verification Document",
+          "name": "Submit Verification Document",
           "event": [
             {
               "listen": "test",
@@ -2750,7 +2750,7 @@
           "response": []
         },
         {
-          "name": "Admin - List Pending Verifications",
+          "name": "List Pending Verifications",
           "event": [
             {
               "listen": "test",
@@ -2789,7 +2789,7 @@
           "response": []
         },
         {
-          "name": "[Update] Admin - Review Verification Status",
+          "name": "Review Verification Status",
           "event": [
             {
               "listen": "test",
@@ -2842,10 +2842,10 @@
           "response": []
         },
         {
-          "name": "Organizer Scaffolding CRUD",
+          "name": "Organizer Scaffolding",
           "item": [
             {
-              "name": "[Create] Create Organizer (Direct)",
+              "name": "Create Organizer (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -2896,7 +2896,7 @@
               "response": []
             },
             {
-              "name": "List Organizers (Direct)",
+              "name": "List Organizers (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -2933,7 +2933,7 @@
               "response": []
             },
             {
-              "name": "Get Organizer by ID (Direct)",
+              "name": "Get Organizer by ID (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -2971,7 +2971,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update Organizer (Direct)",
+              "name": "Update Organizer (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -3023,7 +3023,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Delete Organizer (Direct)",
+              "name": "Delete Organizer (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -3065,11 +3065,11 @@
       ]
     },
     {
-      "name": "05. Volunteers",
+      "name": "Volunteers",
       "description": "Endpoints for volunteer profiles, skills association, and cause interest categories.",
       "item": [
         {
-          "name": "[Create] Create Volunteer Profile",
+          "name": "Create Volunteer Profile",
           "event": [
             {
               "listen": "test",
@@ -3170,7 +3170,7 @@
           "response": []
         },
         {
-          "name": "[Update] Update My Volunteer Profile",
+          "name": "Update My Volunteer Profile",
           "event": [
             {
               "listen": "test",
@@ -3329,7 +3329,7 @@
           "response": []
         },
         {
-          "name": "[Update] Admin Update Volunteer",
+          "name": "Update volunteer (admin)",
           "event": [
             {
               "listen": "test",
@@ -3381,7 +3381,7 @@
           "response": []
         },
         {
-          "name": "[Delete] Admin Delete Volunteer",
+          "name": "Delete volunteer (admin)",
           "event": [
             {
               "listen": "test",
@@ -3422,7 +3422,7 @@
           "name": "Volunteer Skills",
           "item": [
             {
-              "name": "[Create] Add Skill to Volunteer",
+              "name": "Add Skill to Volunteer",
               "event": [
                 {
                   "listen": "test",
@@ -3557,7 +3557,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Remove Skill from Volunteer",
+              "name": "Remove Skill from Volunteer",
               "event": [
                 {
                   "listen": "test",
@@ -3601,7 +3601,7 @@
           "name": "Volunteer Categories",
           "item": [
             {
-              "name": "[Create] Add Category to Volunteer",
+              "name": "Add Category to Volunteer",
               "event": [
                 {
                   "listen": "test",
@@ -3736,7 +3736,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Remove Category from Volunteer",
+              "name": "Remove Category from Volunteer",
               "event": [
                 {
                   "listen": "test",
@@ -3777,10 +3777,10 @@
           ]
         },
         {
-          "name": "Volunteer Scaffolding CRUD",
+          "name": "Volunteer Scaffolding",
           "item": [
             {
-              "name": "[Create] Create Volunteer (Direct)",
+              "name": "Create Volunteer (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -3831,7 +3831,7 @@
               "response": []
             },
             {
-              "name": "List Volunteers (Direct)",
+              "name": "List Volunteers (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -3868,7 +3868,7 @@
               "response": []
             },
             {
-              "name": "Get Volunteer by ID (Direct)",
+              "name": "Get Volunteer by ID (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -3906,7 +3906,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update Volunteer (Direct)",
+              "name": "Update Volunteer (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -3958,7 +3958,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Delete Volunteer (Direct)",
+              "name": "Delete Volunteer (direct)",
               "event": [
                 {
                   "listen": "test",
@@ -4000,11 +4000,11 @@
       ]
     },
     {
-      "name": "06. Causes, Supplies & Media",
+      "name": "Causes",
       "description": "Endpoints for cause creation, lifecycle publication, supplies, and promotional imagery.",
       "item": [
         {
-          "name": "[Create] Create Cause",
+          "name": "Create Cause",
           "event": [
             {
               "listen": "test",
@@ -4058,7 +4058,7 @@
           "response": []
         },
         {
-          "name": "List All Causes",
+          "name": "List causes",
           "event": [
             {
               "listen": "test",
@@ -4240,7 +4240,7 @@
           "response": []
         },
         {
-          "name": "[Update] Publish Cause",
+          "name": "Publish Cause",
           "event": [
             {
               "listen": "test",
@@ -4286,7 +4286,7 @@
           "response": []
         },
         {
-          "name": "[Update] Update Cause Availability",
+          "name": "Update Cause Availability",
           "event": [
             {
               "listen": "test",
@@ -4342,7 +4342,7 @@
           "response": []
         },
         {
-          "name": "[Update] Update Cause Progress State",
+          "name": "Update cause progress",
           "event": [
             {
               "listen": "test",
@@ -4403,7 +4403,7 @@
           "response": []
         },
         {
-          "name": "[Update] Update Cause Details",
+          "name": "Update Cause Details",
           "event": [
             {
               "listen": "test",
@@ -4458,7 +4458,7 @@
           "response": []
         },
         {
-          "name": "[Delete] Delete Cause",
+          "name": "Delete Cause",
           "event": [
             {
               "listen": "test",
@@ -4493,7 +4493,7 @@
           "name": "Supplies",
           "item": [
             {
-              "name": "[Create] Add Supply to Cause",
+              "name": "Add Supply to Cause",
               "event": [
                 {
                   "listen": "test",
@@ -4589,7 +4589,7 @@
               "response": []
             },
             {
-              "name": "[Update] Update Supply",
+              "name": "Update Supply",
               "event": [
                 {
                   "listen": "test",
@@ -4646,7 +4646,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Remove Supply from Cause",
+              "name": "Remove Supply from Cause",
               "event": [
                 {
                   "listen": "test",
@@ -4690,10 +4690,10 @@
           ]
         },
         {
-          "name": "Cause Images & Media",
+          "name": "Cause Images",
           "item": [
             {
-              "name": "[Create] Add Image to Cause",
+              "name": "Add Image to Cause",
               "event": [
                 {
                   "listen": "test",
@@ -4788,7 +4788,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Remove Image from Cause",
+              "name": "Remove Image from Cause",
               "event": [
                 {
                   "listen": "test",
@@ -4863,10 +4863,10 @@
           ]
         },
         {
-          "name": "Cause Scaffolding CRUD",
+          "name": "Cause Scaffolding",
           "item": [
             {
-              "name": "List Causes (Scaffolding)",
+              "name": "List Causes (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -4897,7 +4897,7 @@
               "response": []
             },
             {
-              "name": "Get Cause by ID (Scaffolding)",
+              "name": "Get Cause by ID (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -4933,11 +4933,11 @@
       ]
     },
     {
-      "name": "07. Matches & Discovery",
+      "name": "Matches",
       "description": "Endpoints for affinity matching deck, swipe interactions, and interactive map exploration.",
       "item": [
         {
-          "name": "Get Matching Deck [US-3.2.3]",
+          "name": "Get cause deck",
           "event": [
             {
               "listen": "test",
@@ -4989,7 +4989,7 @@
           "response": []
         },
         {
-          "name": "[Create] Swipe Right - Record Interaction",
+          "name": "Apply to cause (swipe right)",
           "event": [
             {
               "listen": "test",
@@ -5040,7 +5040,7 @@
           "response": []
         },
         {
-          "name": "Swipe Left - Dismiss Match",
+          "name": "Dismiss cause (swipe left)",
           "event": [
             {
               "listen": "test",
@@ -5092,7 +5092,7 @@
           "response": []
         },
         {
-          "name": "Get Interactive Map Pins [US-3.3.3]",
+          "name": "Get interactive map pins",
           "event": [
             {
               "listen": "test",
@@ -5131,7 +5131,7 @@
           "response": []
         },
         {
-          "name": "Get Map Cause Preview [US-3.3.3]",
+          "name": "Get cause preview",
           "event": [
             {
               "listen": "test",
@@ -5171,7 +5171,7 @@
           "response": []
         },
         {
-          "name": "[Negative] Unauthorized Access to Deck",
+          "name": "Get cause deck without auth",
           "event": [
             {
               "listen": "test",
@@ -5201,18 +5201,344 @@
             "description": "Ensures that non-authenticated requests to the deck are blocked with 401."
           },
           "response": []
+        },
+        {
+          "id": "8a721883-5e77-489f-ac78-8b0a8a2a02e8",
+          "name": "Get personalized feed",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Personalized Feed - Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Personalized Feed - Response is an array of cause cards\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"array\");",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.expect(jsonData[0]).to.have.property(\"id\");",
+                  "        pm.expect(jsonData[0]).to.have.property(\"title\");",
+                  "        pm.expect(jsonData[0]).to.have.property(\"affinity_score\");",
+                  "        pm.expect(jsonData[0]).to.have.property(\"spots_available\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}",
+                "type": "text",
+                "description": "Requires volunteer role"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/matches/for-you?page=1&limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "matches",
+                "for-you"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Page number (default 1)"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Number of cards per page (max 50, default 10)"
+                }
+              ]
+            },
+            "description": "Returns a personalized feed of cause recommendations for the authenticated volunteer, ordered by affinity score (calculated based on matching category interests) and available capacity."
+          },
+          "response": []
+        },
+        {
+          "id": "bca44373-5685-49ee-bca0-738acc25ef66",
+          "name": "Explore nearby causes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Nearby Causes - Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Nearby Causes - Response is an array of pins with distance\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"array\");",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.expect(jsonData[0]).to.have.property(\"id\");",
+                  "        pm.expect(jsonData[0]).to.have.property(\"latitude\");",
+                  "        pm.expect(jsonData[0]).to.have.property(\"longitude\");",
+                  "        pm.expect(jsonData[0]).to.have.property(\"distance_km\");",
+                  "        pm.expect(jsonData[0].distance_km).to.be.at.most(Number(pm.variables.get(\"radiusKm\") || 10));",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}",
+                "type": "text",
+                "description": "Requires volunteer role"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/matches/map/nearby?lat={{lat}}&lng={{lng}}&radius_km={{radiusKm}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "matches",
+                "map",
+                "nearby"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "{{lat}}",
+                  "description": "Center point latitude (-90 to 90)"
+                },
+                {
+                  "key": "lng",
+                  "value": "{{lng}}",
+                  "description": "Center point longitude (-180 to 180)"
+                },
+                {
+                  "key": "radius_km",
+                  "value": "{{radiusKm}}",
+                  "description": "Search radius in kilometers (0.1 to 100, default 15)"
+                }
+              ]
+            },
+            "description": "Returns open cause pins situated within the specified radial distance from geographic coordinates (latitude and longitude), sorted by ascending distance."
+          },
+          "response": []
+        },
+        {
+          "id": "a285f226-04ff-4e8f-ad78-f7c1bf87a027",
+          "name": "Explore causes in map area",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Causes in Area - Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Causes in Area - Response is an array of cause pins within bounds\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an(\"array\");",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.expect(jsonData[0]).to.have.property(\"id\");",
+                  "        pm.expect(jsonData[0]).to.have.property(\"latitude\");",
+                  "        pm.expect(jsonData[0]).to.have.property(\"longitude\");",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}",
+                "type": "text",
+                "description": "Requires volunteer role"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/matches/map/area?north={{north}}&south={{south}}&east={{east}}&west={{west}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "matches",
+                "map",
+                "area"
+              ],
+              "query": [
+                {
+                  "key": "north",
+                  "value": "{{north}}",
+                  "description": "Northern bounding latitude (-90 to 90)"
+                },
+                {
+                  "key": "south",
+                  "value": "{{south}}",
+                  "description": "Southern bounding latitude (-90 to 90, must be <= north)"
+                },
+                {
+                  "key": "east",
+                  "value": "{{east}}",
+                  "description": "Eastern bounding longitude (-180 to 180)"
+                },
+                {
+                  "key": "west",
+                  "value": "{{west}}",
+                  "description": "Western bounding longitude (-180 to 180)"
+                }
+              ]
+            },
+            "description": "Returns open cause pins positioned within the geographic bounding box formed by north, south, east, and west coordinates."
+          },
+          "response": []
+        },
+        {
+          "id": "7456e1e2-37f8-4005-943a-813cb7abab10",
+          "name": "Explore nearby causes with invalid coordinates",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Invalid Coordinates - Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Invalid Coordinates - Response contains error message\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/matches/map/nearby?lat=999&lng=-74.0817",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "matches",
+                "map",
+                "nearby"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "999",
+                  "description": "Invalid latitude > 90"
+                },
+                {
+                  "key": "lng",
+                  "value": "-74.0817"
+                }
+              ]
+            },
+            "description": "Verifies validation rejection (400 Bad Request) when latitude coordinates exceed the [-90, 90] bounds."
+          },
+          "response": []
+        },
+        {
+          "id": "4a54d74f-c6c0-429d-9428-7b50eddeba17",
+          "name": "Explore causes in map area with inverted bounds",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Inverted Bounds - Status code is 400\", function () {",
+                  "    pm.response.to.have.status(400);",
+                  "});",
+                  "",
+                  "pm.test(\"Inverted Bounds - Response contains error message\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"message\");",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/matches/map/area?north=4.50&south=4.80&east=-73.90&west=-74.20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "matches",
+                "map",
+                "area"
+              ],
+              "query": [
+                {
+                  "key": "north",
+                  "value": "4.50",
+                  "description": "North is less than south (inverted bounds)"
+                },
+                {
+                  "key": "south",
+                  "value": "4.80"
+                },
+                {
+                  "key": "east",
+                  "value": "-73.90"
+                },
+                {
+                  "key": "west",
+                  "value": "-74.20"
+                }
+              ]
+            },
+            "description": "Verifies validation rejection (400 Bad Request) when south bound exceeds north bound."
+          },
+          "response": []
         }
       ]
     },
     {
-      "name": "08. Participations, Submissions & Attendance",
+      "name": "Participations",
       "description": "Endpoints for volunteering applications, review decisions, and QR code attendance tracking.",
       "item": [
         {
           "name": "Submissions",
           "item": [
             {
-              "name": "[Create] Apply to Cause",
+              "name": "Apply to Cause",
               "event": [
                 {
                   "listen": "test",
@@ -5270,7 +5596,7 @@
               "response": []
             },
             {
-              "name": "Volunteer - View My Submissions",
+              "name": "Get my submissions",
               "event": [
                 {
                   "listen": "test",
@@ -5316,7 +5642,7 @@
               "response": []
             },
             {
-              "name": "Organizer - View Submissions for Cause",
+              "name": "Get submissions for cause",
               "event": [
                 {
                   "listen": "test",
@@ -5355,7 +5681,7 @@
               "response": []
             },
             {
-              "name": "View Submission Details",
+              "name": "Get submission by ID",
               "event": [
                 {
                   "listen": "test",
@@ -5393,7 +5719,7 @@
               "response": []
             },
             {
-              "name": "[Update] Organizer Accept Submission",
+              "name": "Accept submission",
               "event": [
                 {
                   "listen": "test",
@@ -5437,7 +5763,7 @@
               "response": []
             },
             {
-              "name": "[Update] Organizer Reject Submission",
+              "name": "Reject submission",
               "event": [
                 {
                   "listen": "test",
@@ -5483,10 +5809,10 @@
           ]
         },
         {
-          "name": "Attendance & QR Check-in",
+          "name": "Attendance & QR",
           "item": [
             {
-              "name": "Organizer - Get Cause QR Code",
+              "name": "Get Cause QR Code",
               "event": [
                 {
                   "listen": "test",
@@ -5531,7 +5857,7 @@
               "response": []
             },
             {
-              "name": "[Create] Volunteer Check-in via QR Scan",
+              "name": "Check in via QR scan",
               "event": [
                 {
                   "listen": "test",
@@ -5583,7 +5909,7 @@
               "response": []
             },
             {
-              "name": "[Negative] Check-in with Invalid QR Code",
+              "name": "Check in with invalid QR code",
               "event": [
                 {
                   "listen": "test",
@@ -5637,7 +5963,7 @@
           ]
         },
         {
-          "name": "Participations Scaffolding CRUD",
+          "name": "Participations Scaffolding",
           "item": [
             {
               "name": "List Participations Scaffolding",
@@ -5707,11 +6033,11 @@
       ]
     },
     {
-      "name": "09. Announcements & Social",
+      "name": "Announcements",
       "description": "Endpoints for cause updates, photo attachments, and community like reactions.",
       "item": [
         {
-          "name": "[Create] Create Announcement for Cause",
+          "name": "Create announcement",
           "event": [
             {
               "listen": "test",
@@ -5771,7 +6097,7 @@
           "response": []
         },
         {
-          "name": "List Announcements for Cause",
+          "name": "List announcements",
           "event": [
             {
               "listen": "test",
@@ -5804,7 +6130,7 @@
           "response": []
         },
         {
-          "name": "[Create] Add Image to Announcement",
+          "name": "Add image to announcement",
           "event": [
             {
               "listen": "test",
@@ -5857,7 +6183,7 @@
           "response": []
         },
         {
-          "name": "List Images for Announcement",
+          "name": "List images for announcement",
           "event": [
             {
               "listen": "test",
@@ -5890,7 +6216,7 @@
           "response": []
         },
         {
-          "name": "[Create] Toggle Like on Announcement",
+          "name": "Toggle like on announcement",
           "event": [
             {
               "listen": "test",
@@ -5943,10 +6269,10 @@
           "response": []
         },
         {
-          "name": "Announcement Scaffolding CRUD",
+          "name": "Announcement Scaffolding",
           "item": [
             {
-              "name": "List Announcements (Scaffolding)",
+              "name": "List Announcements (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -6043,7 +6369,7 @@
       ]
     },
     {
-      "name": "10. Achievements & Badges",
+      "name": "Achievements",
       "description": "Endpoints for gamification, badges, and volunteer recognition.",
       "item": [
         {
@@ -6085,7 +6411,7 @@
           "response": []
         },
         {
-          "name": "[Create] Admin Create Achievement",
+          "name": "Create achievement",
           "event": [
             {
               "listen": "test",
@@ -6232,7 +6558,7 @@
           "response": []
         },
         {
-          "name": "[Update] Admin Update Achievement",
+          "name": "Update achievement",
           "event": [
             {
               "listen": "test",
@@ -6284,7 +6610,7 @@
           "response": []
         },
         {
-          "name": "[Delete] Admin Delete Achievement",
+          "name": "Delete achievement",
           "event": [
             {
               "listen": "test",
@@ -6322,10 +6648,10 @@
           "response": []
         },
         {
-          "name": "Volunteer Achievements Granting",
+          "name": "Volunteer Achievements",
           "item": [
             {
-              "name": "[Create] Grant Achievement to Volunteer",
+              "name": "Grant Achievement to Volunteer",
               "event": [
                 {
                   "listen": "test",
@@ -6491,7 +6817,7 @@
               "response": []
             },
             {
-              "name": "Get Volunteer-Achievement Link",
+              "name": "Get volunteer-achievement link",
               "event": [
                 {
                   "listen": "test",
@@ -6530,7 +6856,7 @@
               "response": []
             },
             {
-              "name": "[Delete] Revoke Achievement from Volunteer",
+              "name": "Revoke Achievement from Volunteer",
               "event": [
                 {
                   "listen": "test",
@@ -6571,10 +6897,10 @@
           ]
         },
         {
-          "name": "Achievement Scaffolding CRUD",
+          "name": "Achievement Scaffolding",
           "item": [
             {
-              "name": "List Achievements (Scaffolding)",
+              "name": "List Achievements (scaffolding)",
               "event": [
                 {
                   "listen": "test",
@@ -6611,7 +6937,7 @@
               "response": []
             },
             {
-              "name": "Get Achievement by ID (Scaffolding)",
+              "name": "Get Achievement by ID (scaffolding)",
               "event": [
                 {
                   "listen": "test",
