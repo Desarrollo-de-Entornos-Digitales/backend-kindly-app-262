@@ -1248,5 +1248,23 @@ describe('CausesService', () => {
             const result = await service.getCapacity(1, 1);
             expect(result.occupied).toBe(5);
         });
+
+        it('89. should update all optional fields when specified in UpdateCauseDto', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({ ...mockCause });
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.update(1, 1, {
+                cover_image_url: 'https://new-cover.jpg',
+                address: 'New Address 123',
+                location_latitude: '6.2500',
+                start_date: '2026-11-05T08:00:00.000Z',
+                end_date: '2026-11-05T18:00:00.000Z',
+            });
+            expect(result.cover_image_url).toBe('https://new-cover.jpg');
+            expect(result.address).toBe('New Address 123');
+            expect(result.location_latitude).toBe('6.2500');
+            expect(result.start_date).toEqual(new Date('2026-11-05T08:00:00.000Z'));
+            expect(result.end_date).toEqual(new Date('2026-11-05T18:00:00.000Z'));
+        });
     });
 });

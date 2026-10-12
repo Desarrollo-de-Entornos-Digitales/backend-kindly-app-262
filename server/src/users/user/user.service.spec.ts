@@ -318,6 +318,38 @@ describe('UserService', () => {
             });
             expect(result).toEqual(user);
         });
+
+        it('should return null when findOneWithPermissions does not match', async () => {
+            userRepository.findOne.mockResolvedValue(null);
+
+            const result = await service.findOneWithPermissions(999);
+
+            expect(result).toBeNull();
+        });
+
+        it('should return null when findByEmail does not match', async () => {
+            userRepository.findOne.mockResolvedValue(null);
+
+            const result = await service.findByEmail('notfound@example.com');
+
+            expect(result).toBeNull();
+        });
+
+        it('should return null when findByUsername does not match', async () => {
+            userRepository.findOne.mockResolvedValue(null);
+
+            const result = await service.findByUsername('notfound');
+
+            expect(result).toBeNull();
+        });
+
+        it('should return null when findByEmailOrUsername does not match', async () => {
+            userRepository.findOne.mockResolvedValue(null);
+
+            const result = await service.findByEmailOrUsername('notfound@example.com', 'notfound');
+
+            expect(result).toBeNull();
+        });
     });
 
     describe('update', () => {

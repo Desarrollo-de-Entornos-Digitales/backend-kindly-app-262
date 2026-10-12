@@ -655,5 +655,38 @@ describe('AnnouncementsService', () => {
             await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
             await expect(service.findOne(999)).rejects.toThrow("Announcement with ID '999' not found.");
         });
+
+        it('35. should resolve user role correctly when role is provided as an object in create', async () => {
+            const adminWithObjectRole = { id: 1, role: { name: 'admin' } };
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+            (announcementRepository.create as any).mockReturnValue(mockAnnouncement);
+            (announcementRepository.save as any).mockResolvedValue(mockAnnouncement);
+
+            const result = await service.create(1, adminWithObjectRole, {
+                title: 'Announcement Title',
+                text: 'Announcement Text',
+            });
+            expect(result).toBe(mockAnnouncement);
+        });
+
+        it('36. should resolve user role correctly when role is provided as an object in addImage', async () => {
+            const adminWithObjectRole = { id: 1, role: { name: 'admin' } };
+            (announcementRepository.findOne as any).mockResolvedValue(mockAnnouncement);
+            (imageRepository.create as any).mockReturnValue({
+                id: 10,
+                image_url: 'https://new-image.jpg',
+                announcement_id: 101,
+            });
+            (imageRepository.save as any).mockResolvedValue({
+                id: 10,
+                image_url: 'https://new-image.jpg',
+                announcement_id: 101,
+            });
+
+            const result = await service.addImage(101, adminWithObjectRole, {
+                image_url: 'https://new-image.jpg',
+            });
+            expect(result.image_url).toBe('https://new-image.jpg');
+        });
     });
 });
