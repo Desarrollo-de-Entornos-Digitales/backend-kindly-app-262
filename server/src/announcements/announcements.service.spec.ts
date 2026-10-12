@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DeepPartial, Repository } from 'typeorm';
 import { AnnouncementsService } from './announcements.service';
 import { Announcement } from './entities/announcement.entity';
 import { Cause } from '../causes/entities/cause.entity';
@@ -22,11 +22,25 @@ import { CauseNotFoundException, OrganizerNotFoundException } from '../common/ex
 
 describe('AnnouncementsService', () => {
     let service: AnnouncementsService;
-    let announcementRepository: jest.Mocked<Partial<Repository<Announcement>>>;
+    let announcementRepository: {
+        create: jest.Mock<(...args: unknown[]) => Announcement>;
+        save: jest.Mock<(...args: unknown[]) => Promise<Announcement>>;
+        find: jest.Mock<(...args: unknown[]) => Promise<Announcement[]>>;
+        findOne: jest.Mock<(...args: unknown[]) => Promise<Announcement | null>>;
+    };
     let causeRepository: jest.Mocked<Partial<Repository<Cause>>>;
     let organizerRepository: jest.Mocked<Partial<Repository<Organizer>>>;
-    let imageRepository: jest.Mocked<Partial<Repository<Image>>>;
-    let announcementReactionRepository: jest.Mocked<Partial<Repository<AnnouncementReaction>>>;
+    let imageRepository: {
+        create: jest.Mock<(...args: unknown[]) => Image>;
+        save: jest.Mock<(...args: unknown[]) => Promise<Image>>;
+        find: jest.Mock<(...args: unknown[]) => Promise<Image[]>>;
+        findOne: jest.Mock<(...args: unknown[]) => Promise<Image | null>>;
+    };
+    let announcementReactionRepository: {
+        create: jest.Mock<(...args: unknown[]) => AnnouncementReaction>;
+        save: jest.Mock<(...args: unknown[]) => Promise<AnnouncementReaction>>;
+        findOne: jest.Mock<(...args: unknown[]) => Promise<AnnouncementReaction | null>>;
+    };
     let validationPipe: ValidationPipe;
 
     const mockOrganizerUser = {
@@ -117,8 +131,14 @@ describe('AnnouncementsService', () => {
 
     beforeEach(async () => {
         announcementRepository = {
-            create: jest.fn((dto: any) => ({ ...dto, id: 101, created_at: new Date() })),
-            save: jest.fn((entity: any) => Promise.resolve({ ...entity, id: entity.id || 101 })),
+            create: jest.fn((dto?: DeepPartial<Announcement>) => ({
+                id: 101,
+                created_at: new Date(),
+                ...dto,
+            } as Announcement)),
+            save: jest.fn((entity: Partial<Announcement>) =>
+                Promise.resolve({ ...entity, id: entity.id || 101 } as Announcement),
+            ),
             find: jest.fn(() => Promise.resolve([mockAnnouncement])),
             findOne: jest.fn(() => Promise.resolve(mockAnnouncement)),
         };
@@ -132,15 +152,25 @@ describe('AnnouncementsService', () => {
         };
 
         imageRepository = {
-            create: jest.fn((dto: any) => ({ ...dto, id: 501 })),
-            save: jest.fn((entity: any) => Promise.resolve({ ...entity, id: entity.id || 501 })),
+            create: jest.fn((dto?: DeepPartial<Image>) => ({
+                id: 501,
+                ...dto,
+            } as Image)),
+            save: jest.fn((entity: Partial<Image>) =>
+                Promise.resolve({ ...entity, id: entity.id || 501 } as Image),
+            ),
             find: jest.fn(() => Promise.resolve([mockImage])),
             findOne: jest.fn(() => Promise.resolve(mockImage)),
         };
 
         announcementReactionRepository = {
-            create: jest.fn((dto: any) => ({ ...dto, created_at: new Date() })),
-            save: jest.fn((entity: any) => Promise.resolve({ ...entity })),
+            create: jest.fn((dto?: DeepPartial<AnnouncementReaction>) => ({
+                created_at: new Date(),
+                ...dto,
+            } as AnnouncementReaction)),
+            save: jest.fn((entity: Partial<AnnouncementReaction>) =>
+                Promise.resolve({ ...entity } as AnnouncementReaction),
+            ),
             findOne: jest.fn(() => Promise.resolve(null)),
         };
 
