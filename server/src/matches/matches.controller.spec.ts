@@ -27,6 +27,9 @@ describe('MatchesController', () => {
             dismiss: jest.fn(),
             getMapPins: jest.fn(),
             getCausePreview: jest.fn(),
+            getForYouFeed: jest.fn(),
+            getNearbyPins: jest.fn(),
+            getPinsInArea: jest.fn(),
         } as unknown as jest.Mocked<MatchesService>;
 
         controller = new MatchesController(matchesService);
@@ -81,6 +84,45 @@ describe('MatchesController', () => {
 
             expect(result).toEqual(pins);
             expect(matchesService.getMapPins).toHaveBeenCalled();
+        });
+    });
+
+    describe('getForYouFeed', () => {
+        it('should return for you feed cards for current volunteer', async () => {
+            const query: GetDeckQueryDto = { limit: 5, page: 1 };
+            const cards = [{ id: 1, title: 'Cause 1', affinity_score: 1 }];
+            matchesService.getForYouFeed.mockResolvedValue(cards as never);
+
+            const result = await controller.getForYouFeed(10, query);
+
+            expect(result).toEqual(cards);
+            expect(matchesService.getForYouFeed).toHaveBeenCalledWith(10, query);
+        });
+    });
+
+    describe('getNearbyPins', () => {
+        it('should return nearby map pins with distances', async () => {
+            const query = { lat: 4.6, lng: -74.08, radius_km: 15 };
+            const pins = [{ id: 1, distance_km: 3.5 }];
+            matchesService.getNearbyPins.mockResolvedValue(pins as never);
+
+            const result = await controller.getNearbyPins(query);
+
+            expect(result).toEqual(pins);
+            expect(matchesService.getNearbyPins).toHaveBeenCalledWith(query);
+        });
+    });
+
+    describe('getPinsInArea', () => {
+        it('should return pins within bounding box', async () => {
+            const query = { north: 5.0, south: 4.0, east: -73.0, west: -75.0 };
+            const pins = [{ id: 1, latitude: 4.5, longitude: -74.0 }];
+            matchesService.getPinsInArea.mockResolvedValue(pins as never);
+
+            const result = await controller.getPinsInArea(query);
+
+            expect(result).toEqual(pins);
+            expect(matchesService.getPinsInArea).toHaveBeenCalledWith(query);
         });
     });
 

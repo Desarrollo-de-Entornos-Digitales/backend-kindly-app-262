@@ -41,4 +41,3 @@ describe('GetDeckQueryDto', () => {
         expect(errors.length).toBeGreaterThanOrEqual(2);
     });
 });
-
