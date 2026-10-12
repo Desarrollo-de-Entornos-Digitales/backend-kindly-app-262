@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { MatchesService } from './matches.service';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
@@ -9,6 +9,7 @@ import { PermissionsGuard } from '../auth/guards/permission.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { Permissions } from '../auth/decorators/permission.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { PositiveIntPipe } from '../common/pipes/positive-int.pipe';
 
 @Controller('matches')
 export class MatchesController {
@@ -35,5 +36,19 @@ export class MatchesController {
     @Roles('volunteer')
     dismiss(@CurrentUser('id') userId: number, @Body() dismissMatchDto: DismissMatchDto) {
         return this.matchesService.dismiss(userId, dismissMatchDto);
+    }
+
+    @Get('map/pins')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('volunteer')
+    getMapPins() {
+        return this.matchesService.getMapPins();
+    }
+
+    @Get('map/preview/:causeId')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('volunteer')
+    getCausePreview(@Param('causeId', PositiveIntPipe) causeId: number) {
+        return this.matchesService.getCausePreview(causeId);
     }
 }

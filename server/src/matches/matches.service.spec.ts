@@ -1,9 +1,31 @@
 import { describe, beforeEach, it, expect, jest } from '@jest/globals';
-import { BadRequestException, NotFoundException, ValidationPipe } from '@nestjs/common';
+
+jest.mock('@nestjs/passport', () => ({
+    AuthGuard: () =>
+        class MockAuthGuard {
+            canActivate() {
+                return true;
+            }
+        },
+    PassportModule: class MockPassportModule {},
+}));
+import {
+    BadRequestException,
+    ExecutionContext,
+    ForbiddenException,
+    NotFoundException,
+    UnauthorizedException,
+    ValidationPipe,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { In } from 'typeorm';
 import { MatchesService } from './matches.service';
+import { MatchesController } from './matches.controller';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { ROLES_KEY } from '../auth/decorators/roles.decorator';
 import { Cause } from '../causes/entities/cause.entity';
 import { Volunteer } from '../volunteers/entities/volunteer.entity';
 import { Submission } from '../participations/entities/submission.entity';
@@ -18,6 +40,7 @@ import {
     CauseQuotaFullException,
     DuplicateSubmissionException,
 } from '../common/exceptions';
+import { PositiveIntPipe } from '../common/pipes/positive-int.pipe';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { DismissMatchDto } from './dto/dismiss-match.dto';
@@ -26,6 +49,7 @@ describe('MatchesService', () => {
     let service: MatchesService;
     let causeRepository: {
         createQueryBuilder: jest.Mock<(alias?: string) => typeof mockQueryBuilder>;
+        findOne: jest.Mock<(...args: unknown[]) => Promise<Cause | null>>;
         findOneBy: jest.Mock<(where: { id: number }) => Promise<Cause | null>>;
         save: jest.Mock<(entity: Cause) => Promise<Cause>>;
     };
@@ -59,6 +83,7 @@ describe('MatchesService', () => {
         getRawMany: jest.Mock<() => Promise<Array<{ cause_id: number; count: string | number }>>>;
     };
     let validationPipe: ValidationPipe;
+    let positiveIntPipe: PositiveIntPipe;
 
     const mockUser = {
         id: 5,
@@ -205,6 +230,7 @@ describe('MatchesService', () => {
 
         causeRepository = {
             createQueryBuilder: jest.fn((_alias?: string) => mockQueryBuilder),
+            findOne: jest.fn((..._args: unknown[]) => Promise.resolve(mockCause1 as Cause | null)),
             findOneBy: jest.fn((_where: { id: number }) => Promise.resolve(mockCause1 as Cause | null)),
             save: jest.fn((entity: Cause) => Promise.resolve(entity)),
         };
@@ -259,6 +285,8 @@ describe('MatchesService', () => {
             transform: true,
             transformOptions: { enableImplicitConversion: true },
         });
+
+        positiveIntPipe = new PositiveIntPipe();
     });
 
     describe('US-3.1.1: Browse causes with swipe cards', () => {
@@ -632,6 +660,442 @@ describe('MatchesService', () => {
             expect(submissionRepository.save).not.toHaveBeenCalled();
             expect(submissionService.create).not.toHaveBeenCalled();
             expect(causeRepository.save).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('US-3.2.1: View causes on an interactive map', () => {
+        it('28. should return lightweight geolocated pins for active causes with valid coordinates', async () => {
+            const pins = await service.getMapPins();
+
+            expect(causeRepository.createQueryBuilder).toHaveBeenCalledWith('cause');
+            expect(mockQueryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('cause.category', 'category');
+            expect(mockQueryBuilder.where).toHaveBeenCalledWith('cause.is_available = :isAvailable', {
+                isAvailable: true,
+            });
+            expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('cause.progress = :progress', {
+                progress: 'open',
+            });
+            expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('cause.id', 'ASC');
+
+            expect(pins).toHaveLength(2);
+            expect(pins[0]).toEqual({
+                id: 101,
+                title: 'Gran Sembratón Comunitaria',
+                latitude: 6.2442,
+                longitude: -75.5812,
+                category: {
+                    id: 2,
+                    name: 'Medio Ambiente',
+                },
+            });
+            expect(pins[1]).toEqual({
+                id: 102,
+                title: 'Jornada de Limpieza de Río',
+                latitude: 6.25,
+                longitude: -75.57,
+                category: {
+                    id: 2,
+                    name: 'Medio Ambiente',
+                },
+            });
+        });
+
+        it('29. should exclude causes with missing, empty or non-numeric coordinates', async () => {
+            const causeWithEmptyCoords: Cause = {
+                ...mockCause1,
+                id: 104,
+                location_latitude: '',
+                location_longitude: '',
+            };
+            const causeWithInvalidCoords: Cause = {
+                ...mockCause1,
+                id: 105,
+                location_latitude: 'invalid_lat',
+                location_longitude: 'invalid_lng',
+            };
+
+            mockQueryBuilder.getMany.mockResolvedValue([mockCause1, causeWithEmptyCoords, causeWithInvalidCoords]);
+
+            const pins = await service.getMapPins();
+
+            expect(pins).toHaveLength(1);
+            expect(pins[0].id).toBe(101);
+            expect(pins[0].latitude).toBe(6.2442);
+            expect(pins[0].longitude).toBe(-75.5812);
+        });
+
+        it('30. should accept valid coordinates at the geographical boundaries', async () => {
+            const boundaryCauseNorthEast: Cause = {
+                ...mockCause1,
+                id: 107,
+                location_latitude: '90',
+                location_longitude: '180',
+            };
+            const boundaryCauseSouthWest: Cause = {
+                ...mockCause1,
+                id: 108,
+                location_latitude: '-90',
+                location_longitude: '-180',
+            };
+
+            mockQueryBuilder.getMany.mockResolvedValue([boundaryCauseNorthEast, boundaryCauseSouthWest]);
+
+            const pins = await service.getMapPins();
+
+            expect(pins).toHaveLength(2);
+            expect(pins[0].latitude).toBe(90);
+            expect(pins[0].longitude).toBe(180);
+            expect(pins[1].latitude).toBe(-90);
+            expect(pins[1].longitude).toBe(-180);
+        });
+
+        it('31. should exclude causes with latitudes outside [-90, 90]', async () => {
+            const causeBeyondNorth: Cause = {
+                ...mockCause1,
+                id: 109,
+                location_latitude: '90.0001',
+                location_longitude: '0',
+            };
+            const causeBeyondSouth: Cause = {
+                ...mockCause1,
+                id: 110,
+                location_latitude: '-90.0001',
+                location_longitude: '0',
+            };
+            const causeExtremeLat: Cause = {
+                ...mockCause1,
+                id: 111,
+                location_latitude: '150',
+                location_longitude: '0',
+            };
+
+            mockQueryBuilder.getMany.mockResolvedValue([causeBeyondNorth, causeBeyondSouth, causeExtremeLat]);
+
+            const pins = await service.getMapPins();
+
+            expect(pins).toEqual([]);
+        });
+
+        it('32. should exclude causes with longitudes outside [-180, 180]', async () => {
+            const causeBeyondEast: Cause = {
+                ...mockCause1,
+                id: 112,
+                location_latitude: '0',
+                location_longitude: '180.0001',
+            };
+            const causeBeyondWest: Cause = {
+                ...mockCause1,
+                id: 113,
+                location_latitude: '0',
+                location_longitude: '-180.0001',
+            };
+            const causeExtremeLng: Cause = {
+                ...mockCause1,
+                id: 114,
+                location_latitude: '0',
+                location_longitude: '-200',
+            };
+
+            mockQueryBuilder.getMany.mockResolvedValue([causeBeyondEast, causeBeyondWest, causeExtremeLng]);
+
+            const pins = await service.getMapPins();
+
+            expect(pins).toEqual([]);
+        });
+
+        it('33. should exclude causes with non-finite coordinate values', async () => {
+            const causeInfinityLat: Cause = {
+                ...mockCause1,
+                id: 115,
+                location_latitude: 'Infinity',
+                location_longitude: '0',
+            };
+            const causeNegInfinityLat: Cause = {
+                ...mockCause1,
+                id: 116,
+                location_latitude: '-Infinity',
+                location_longitude: '0',
+            };
+            const causeInfinityLng: Cause = {
+                ...mockCause1,
+                id: 117,
+                location_latitude: '0',
+                location_longitude: 'Infinity',
+            };
+            const causeNegInfinityLng: Cause = {
+                ...mockCause1,
+                id: 118,
+                location_latitude: '0',
+                location_longitude: '-Infinity',
+            };
+
+            mockQueryBuilder.getMany.mockResolvedValue([
+                causeInfinityLat,
+                causeNegInfinityLat,
+                causeInfinityLng,
+                causeNegInfinityLng,
+            ]);
+
+            const pins = await service.getMapPins();
+
+            expect(pins).toEqual([]);
+        });
+
+        it('34. should return an empty array when no eligible causes have valid coordinates', async () => {
+            mockQueryBuilder.getMany.mockResolvedValue([]);
+
+            const pins = await service.getMapPins();
+
+            expect(pins).toEqual([]);
+        });
+
+        it('35. should include causes even if the volunteer has already applied to them', async () => {
+            (submissionRepository.find as any).mockResolvedValue([{ cause_id: 101 }]);
+
+            const pins = await service.getMapPins();
+
+            expect(submissionRepository.find).not.toHaveBeenCalled();
+            expect(mockQueryBuilder.andWhere).not.toHaveBeenCalledWith(
+                expect.stringContaining('NOT IN'),
+                expect.anything(),
+            );
+            expect(pins).toHaveLength(2);
+        });
+
+        it('36. should handle causes without category gracefully', async () => {
+            const causeWithoutCategory: Cause = {
+                ...mockCause1,
+                id: 106,
+                category: null as any,
+            };
+            mockQueryBuilder.getMany.mockResolvedValue([causeWithoutCategory]);
+
+            const pins = await service.getMapPins();
+
+            expect(pins).toHaveLength(1);
+            expect(pins[0].id).toBe(106);
+            expect(pins[0].category).toBeUndefined();
+        });
+    });
+
+    describe('US-3.2.2: Open cause preview from map', () => {
+        it('37. should return full cause preview card with all details and capacity calculations', async () => {
+            (submissionRepository.count as any).mockResolvedValue(5);
+
+            const card = await service.getCausePreview(101);
+
+            expect(causeRepository.findOne).toHaveBeenCalledWith({
+                where: { id: 101 },
+                relations: {
+                    organizer: true,
+                    category: true,
+                },
+            });
+            expect(card.id).toBe(101);
+            expect(card.title).toBe('Gran Sembratón Comunitaria');
+            expect(card.description).toBe('Jornada de siembra comunitaria en reserva natural');
+            expect(card.cover_image_url).toBe('https://images.kindly.org/causes/sembraton.jpg');
+            expect(card.organization).toEqual({
+                id: 1,
+                name: 'Fundación Huellas Verdes',
+                verification_status: 'verified',
+                is_verified: true,
+            });
+            expect(card.category).toEqual({
+                id: 2,
+                name: 'Medio Ambiente',
+            });
+            expect(card.start_date).toEqual(new Date('2026-11-01'));
+            expect(card.end_date).toEqual(new Date('2026-11-02'));
+            expect(card.location).toEqual({
+                address: 'Parque Ecológico Arví, Medellín',
+                latitude: '6.2442',
+                longitude: '-75.5812',
+            });
+            expect(card.capacity).toBe(20);
+            expect(card.spots_available).toBe(15);
+            expect(card.occupied_spots).toBe(5);
+            expect(card.is_full).toBe(false);
+        });
+
+        it('38. should throw CauseNotFoundException when the requested cause does not exist', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.getCausePreview(999)).rejects.toThrow(CauseNotFoundException);
+        });
+
+        it('39. should throw CauseNotAvailableException when the cause is not available', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({
+                ...mockCause1,
+                is_available: false,
+            });
+
+            await expect(service.getCausePreview(101)).rejects.toThrow(CauseNotAvailableException);
+        });
+
+        it('40. should throw CauseNotAvailableException when the cause is not open for applications', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({
+                ...mockCause1,
+                progress: 'in_progress',
+            });
+
+            await expect(service.getCausePreview(101)).rejects.toThrow(CauseNotAvailableException);
+        });
+
+        it('41. should throw CauseNotAvailableException when the cause has already ended', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({
+                ...mockCause1,
+                end_date: new Date('2020-01-01'),
+            });
+
+            await expect(service.getCausePreview(101)).rejects.toThrow(CauseNotAvailableException);
+        });
+
+        it('42. should correctly compute is_full true and spots_available 0 when capacity is reached', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(mockCauseFull);
+            (submissionRepository.count as any).mockResolvedValue(5);
+
+            const card = await service.getCausePreview(103);
+
+            expect(card.capacity).toBe(5);
+            expect(card.occupied_spots).toBe(5);
+            expect(card.spots_available).toBe(0);
+            expect(card.is_full).toBe(true);
+        });
+
+        it('43. should handle preview of causes with unlimited capacity', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({
+                ...mockCause1,
+                capacity: null as any,
+            });
+            (submissionRepository.count as any).mockResolvedValue(8);
+
+            const card = await service.getCausePreview(101);
+
+            expect(card.capacity).toBeNull();
+            expect(card.spots_available).toBeNull();
+            expect(card.occupied_spots).toBe(8);
+            expect(card.is_full).toBe(false);
+        });
+
+        it('44. should validate causeId parameter using PositiveIntPipe', () => {
+            expect(positiveIntPipe.transform('101', { type: 'param', data: 'causeId' })).toBe(101);
+            expect(() => positiveIntPipe.transform('0', { type: 'param', data: 'causeId' })).toThrow(
+                "Parameter 'causeId' must be a positive integer greater than 0.",
+            );
+            expect(() => positiveIntPipe.transform('-5', { type: 'param', data: 'causeId' })).toThrow(
+                "Parameter 'causeId' must be a positive integer greater than 0.",
+            );
+            expect(() => positiveIntPipe.transform('abc', { type: 'param', data: 'causeId' })).toThrow(
+                "Parameter 'causeId' must be a valid integer.",
+            );
+            expect(() => positiveIntPipe.transform('xyz', { type: 'param' })).toThrow(
+                "Parameter 'id' must be a valid integer.",
+            );
+        });
+    });
+
+    describe('MatchesController: Authentication and Authorization', () => {
+        let controller: MatchesController;
+        let reflector: Reflector;
+        let rolesGuard: RolesGuard;
+
+        beforeEach(() => {
+            controller = new MatchesController(service);
+            reflector = new Reflector();
+            rolesGuard = new RolesGuard(reflector);
+        });
+
+        const createMockContext = (handler: (...args: any[]) => any, user?: any): ExecutionContext =>
+            ({
+                getHandler: () => handler,
+                getClass: () => MatchesController,
+                switchToHttp: () => ({
+                    getRequest: () => ({ user }),
+                }),
+            }) as unknown as ExecutionContext;
+
+        it('45. should bind JwtAuthGuard and RolesGuard to getMapPins endpoint', () => {
+            const getMapPinsHandler = (controller as any).getMapPins;
+            const guards = reflector.get<any[]>('__guards__', getMapPinsHandler);
+            expect(guards).toBeDefined();
+            expect(guards).toContain(JwtAuthGuard);
+            expect(guards).toContain(RolesGuard);
+        });
+
+        it('46. should require volunteer role on getMapPins endpoint', () => {
+            const getMapPinsHandler = (controller as any).getMapPins;
+            const roles = reflector.get<string[]>(ROLES_KEY, getMapPinsHandler);
+            expect(roles).toEqual(['volunteer']);
+        });
+
+        it('47. should bind JwtAuthGuard and RolesGuard to getCausePreview endpoint', () => {
+            const getCausePreviewHandler = (controller as any).getCausePreview;
+            const guards = reflector.get<any[]>('__guards__', getCausePreviewHandler);
+            expect(guards).toBeDefined();
+            expect(guards).toContain(JwtAuthGuard);
+            expect(guards).toContain(RolesGuard);
+        });
+
+        it('48. should require volunteer role on getCausePreview endpoint', () => {
+            const getCausePreviewHandler = (controller as any).getCausePreview;
+            const roles = reflector.get<string[]>(ROLES_KEY, getCausePreviewHandler);
+            expect(roles).toEqual(['volunteer']);
+        });
+
+        it('49. should delegate getMapPins call to MatchesService', async () => {
+            const pinsMock = [{ id: 101, title: 'Cause', latitude: 6.2, longitude: -75.5 }];
+            const getMapPinsSpy = jest.spyOn(service, 'getMapPins').mockResolvedValue(pinsMock);
+
+            const result = await controller.getMapPins();
+
+            expect(getMapPinsSpy).toHaveBeenCalled();
+            expect(result).toBe(pinsMock);
+        });
+
+        it('50. should delegate getCausePreview call to MatchesService', async () => {
+            const previewMock = { id: 101, title: 'Cause' };
+            const getCausePreviewSpy = jest.spyOn(service, 'getCausePreview').mockResolvedValue(previewMock as any);
+
+            const result = await controller.getCausePreview(101);
+
+            expect(getCausePreviewSpy).toHaveBeenCalledWith(101);
+            expect(result).toBe(previewMock);
+        });
+
+        it('51. should allow access when user has volunteer role', () => {
+            const getMapPinsHandler = (controller as any).getMapPins;
+            const getCausePreviewHandler = (controller as any).getCausePreview;
+            const context = createMockContext(getMapPinsHandler, { id: 1, role: 'volunteer' });
+            expect(rolesGuard.canActivate(context)).toBe(true);
+
+            const previewContext = createMockContext(getCausePreviewHandler, {
+                id: 1,
+                role: { name: 'volunteer' },
+            });
+            expect(rolesGuard.canActivate(previewContext)).toBe(true);
+        });
+
+        it('52. should reject with UnauthorizedException when user is unauthenticated', () => {
+            const getMapPinsHandler = (controller as any).getMapPins;
+            const context = createMockContext(getMapPinsHandler, null);
+            expect(() => rolesGuard.canActivate(context)).toThrow(UnauthorizedException);
+        });
+
+        it('53. should reject with ForbiddenException when user has no role assigned', () => {
+            const getMapPinsHandler = (controller as any).getMapPins;
+            const context = createMockContext(getMapPinsHandler, { id: 1 });
+            expect(() => rolesGuard.canActivate(context)).toThrow(ForbiddenException);
+        });
+
+        it('54. should reject with ForbiddenException when user role is not volunteer', () => {
+            const getMapPinsHandler = (controller as any).getMapPins;
+            const getCausePreviewHandler = (controller as any).getCausePreview;
+            const contextOrganizer = createMockContext(getMapPinsHandler, { id: 1, role: 'organizer' });
+            expect(() => rolesGuard.canActivate(contextOrganizer)).toThrow(ForbiddenException);
+
+            const contextAdmin = createMockContext(getCausePreviewHandler, { id: 2, role: 'admin' });
+            expect(() => rolesGuard.canActivate(contextAdmin)).toThrow(ForbiddenException);
         });
     });
 });
