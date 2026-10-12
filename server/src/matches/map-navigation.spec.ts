@@ -8,6 +8,7 @@ import { Submission } from '../participations/entities/submission.entity';
 import { SubmissionService } from '../participations/submission/submission.service';
 import { MatchesService } from './matches.service';
 import { NearbyCausesQueryDto } from './dto/nearby-causes-query.dto';
+import { MapAreaQueryDto } from './dto/map-area-query.dto';
 
 const causeAt = (id: number, latitude: string, longitude: string) =>
     ({ id, title: `Cause ${id}`, location_latitude: latitude, location_longitude: longitude }) as Cause;
@@ -75,6 +76,69 @@ describe('Map navigation', () => {
         it('keeps the pin information from the map pins', async () => {
             const [pin] = await service.getNearbyPins({ ...cali, radius_km: 1 });
             expect(pin).toMatchObject({ id: 1, title: 'Cause 1', latitude: 3.4516, longitude: -76.532 });
+        });
+    });
+
+    describe('getPinsInArea', () => {
+        const caliArea = { north: 3.6, south: 3.3, east: -76.4, west: -76.7 };
+
+        it('returns only the causes inside the visible area', async () => {
+            const pins = await service.getPinsInArea(caliArea);
+            expect(pins.map((pin) => pin.id).sort()).toEqual([1, 2]);
+        });
+
+        it('includes causes on the edge of the area', async () => {
+            const pins = await service.getPinsInArea({ ...caliArea, north: 3.495 });
+            expect(pins.map((pin) => pin.id).sort()).toEqual([1, 2]);
+        });
+
+        it('returns more causes when the area is zoomed out', async () => {
+            const pins = await service.getPinsInArea({ north: 5, south: 3, east: -74, west: -77 });
+            expect(pins.map((pin) => pin.id).sort()).toEqual([1, 2, 3, 4]);
+        });
+
+        it('supports areas that cross the antimeridian', async () => {
+            queryBuilder.getMany.mockResolvedValue([
+                causeAt(10, '0', '179.5'),
+                causeAt(11, '0', '-179.5'),
+                causeAt(12, '0', '0'),
+            ]);
+            const pins = await service.getPinsInArea({ north: 1, south: -1, east: -179, west: 179 });
+            expect(pins.map((pin) => pin.id)).toEqual([10, 11]);
+        });
+
+        it('fails when south is greater than north', async () => {
+            await expect(service.getPinsInArea({ ...caliArea, north: 3.3, south: 3.6 })).rejects.toThrow(
+                BadRequestException,
+            );
+        });
+    });
+
+    describe('MapAreaQueryDto', () => {
+        const pipe = new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true });
+        const validate = (query: Record<string, string>) =>
+            pipe.transform(query, { type: 'query', metatype: MapAreaQueryDto });
+
+        it('converts the four borders to numbers', async () => {
+            await expect(validate({ north: '3.6', south: '3.3', east: '-76.4', west: '-76.7' })).resolves.toEqual({
+                north: 3.6,
+                south: 3.3,
+                east: -76.4,
+                west: -76.7,
+            });
+        });
+
+        it('requires all four borders', async () => {
+            await expect(validate({ north: '3.6', south: '3.3', east: '-76.4' })).rejects.toThrow(BadRequestException);
+        });
+
+        it('rejects borders outside the valid range', async () => {
+            await expect(validate({ north: '91', south: '0', east: '0', west: '0' })).rejects.toThrow(
+                BadRequestException,
+            );
+            await expect(validate({ north: '1', south: '0', east: '181', west: '0' })).rejects.toThrow(
+                BadRequestException,
+            );
         });
     });
 

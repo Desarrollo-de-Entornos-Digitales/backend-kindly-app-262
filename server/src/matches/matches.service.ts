@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Raw, Repository } from 'typeorm';
 import { Cause } from '../causes/entities/cause.entity';
@@ -11,6 +11,7 @@ import { CauseCardDto } from './dto/cause-card.dto';
 import { CausePinDto } from './dto/cause-pin.dto';
 import { NearbyCausePinDto } from './dto/nearby-cause-pin.dto';
 import { NearbyCausesQueryDto } from './dto/nearby-causes-query.dto';
+import { MapAreaQueryDto } from './dto/map-area-query.dto';
 import { distanceInKm } from './geo.util';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
@@ -120,6 +121,24 @@ export class MatchesService {
             }))
             .filter((pin) => pin.distance_km <= radiusKm)
             .sort((a, b) => a.distance_km - b.distance_km || a.id - b.id);
+    }
+
+    async getPinsInArea(queryDto: MapAreaQueryDto): Promise<CausePinDto[]> {
+        const { north, south, east, west } = queryDto;
+        if (south > north) {
+            throw new BadRequestException('south must be less than or equal to north');
+        }
+
+        const crossesAntimeridian = west > east;
+        const pins = await this.getMapPins();
+
+        return pins.filter((pin) => {
+            const insideLatitude = pin.latitude >= south && pin.latitude <= north;
+            const insideLongitude = crossesAntimeridian
+                ? pin.longitude >= west || pin.longitude <= east
+                : pin.longitude >= west && pin.longitude <= east;
+            return insideLatitude && insideLongitude;
+        });
     }
 
     async getMapPins(): Promise<CausePinDto[]> {
