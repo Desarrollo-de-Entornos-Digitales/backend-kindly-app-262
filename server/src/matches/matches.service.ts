@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Raw, Repository } from 'typeorm';
 import { Cause } from '../causes/entities/cause.entity';
@@ -9,9 +9,16 @@ import { SubmissionStatus } from '../participations/submission/submission-status
 import { CauseNotAvailableException, CauseNotFoundException } from '../common/exceptions';
 import { CauseCardDto } from './dto/cause-card.dto';
 import { CausePinDto } from './dto/cause-pin.dto';
+import { NearbyCausePinDto } from './dto/nearby-cause-pin.dto';
+import { NearbyCausesQueryDto } from './dto/nearby-causes-query.dto';
+import { MapAreaQueryDto } from './dto/map-area-query.dto';
+import { ForYouCardDto } from './dto/for-you-card.dto';
+import { distanceInKm } from './geo.util';
 import { GetDeckQueryDto } from './dto/get-deck-query.dto';
 import { CreateMatchDto } from './dto/create-match.dto';
 import { DismissMatchDto } from './dto/dismiss-match.dto';
+
+const DEFAULT_NEARBY_RADIUS_KM = 10;
 
 @Injectable()
 export class MatchesService {
@@ -62,23 +69,7 @@ export class MatchesService {
 
         const candidateCauses = await queryBuilder.getMany();
 
-        const candidateCauseIds = candidateCauses.map((c) => c.id);
-        const occupiedMap = new Map<number, number>();
-
-        if (candidateCauseIds.length > 0) {
-            const occupiedCounts = await this.submissionRepository
-                .createQueryBuilder('submission')
-                .select('submission.cause_id', 'cause_id')
-                .addSelect('COUNT(submission.id)', 'count')
-                .where('submission.cause_id IN (:...candidateCauseIds)', { candidateCauseIds })
-                .andWhere('LOWER(submission.status) IN (:...statuses)', { statuses: ['approved', 'accepted'] })
-                .groupBy('submission.cause_id')
-                .getRawMany<{ cause_id: number; count: string | number }>();
-
-            for (const row of occupiedCounts) {
-                occupiedMap.set(Number(row.cause_id), Number(row.count));
-            }
-        }
+        const occupiedMap = await this.countOccupiedSpots(candidateCauses.map((c) => c.id));
 
         const limit = queryDto?.limit ?? 10;
         const page = queryDto?.page ?? 1;
@@ -101,6 +92,94 @@ export class MatchesService {
         }
 
         return eligibleCards.slice(startIndex, startIndex + limit);
+    }
+
+    async getForYouFeed(userId: number, queryDto?: GetDeckQueryDto): Promise<ForYouCardDto[]> {
+        const volunteer = await this.volunteerRepository.findOne({
+            where: { user_id: userId },
+            relations: { volunteerCategories: true },
+        });
+
+        if (!volunteer) {
+            throw new NotFoundException(`Volunteer profile not found for user ID '${userId}'.`);
+        }
+
+        const interestCategoryIds = new Set(
+            (volunteer.volunteerCategories ?? []).map((volunteerCategory) => volunteerCategory.category_id),
+        );
+
+        const activeSubmissions = await this.submissionRepository.find({
+            where: {
+                volunteer_id: volunteer.id,
+                status: In([SubmissionStatus.PENDING, SubmissionStatus.ACCEPTED]),
+            },
+            select: ['cause_id'],
+        });
+        const excludedCauseIds = activeSubmissions.map((submission) => submission.cause_id);
+
+        const queryBuilder = this.causeRepository
+            .createQueryBuilder('cause')
+            .leftJoinAndSelect('cause.organizer', 'organizer')
+            .leftJoinAndSelect('cause.category', 'category')
+            .where('cause.is_available = :isAvailable', { isAvailable: true })
+            .andWhere('cause.progress = :progress', { progress: 'open' })
+            .andWhere('cause.end_date >= :now', { now: new Date() });
+
+        if (excludedCauseIds.length > 0) {
+            queryBuilder.andWhere('cause.id NOT IN (:...excludedCauseIds)', { excludedCauseIds });
+        }
+
+        const upcomingCauses = await queryBuilder
+            .orderBy('cause.start_date', 'ASC')
+            .addOrderBy('cause.id', 'ASC')
+            .getMany();
+        const occupiedMap = await this.countOccupiedSpots(upcomingCauses.map((cause) => cause.id));
+
+        const cards = upcomingCauses
+            .map((cause) => ({
+                ...this.buildCauseCard(cause, occupiedMap.get(cause.id) ?? 0),
+                affinity_score: interestCategoryIds.has(cause.category_id) ? 1 : 0,
+            }))
+            .filter((card) => !card.is_full)
+            .sort((a, b) => b.affinity_score - a.affinity_score);
+
+        const limit = queryDto?.limit ?? 10;
+        const page = queryDto?.page ?? 1;
+        const startIndex = (page - 1) * limit;
+
+        return cards.slice(startIndex, startIndex + limit);
+    }
+
+    async getNearbyPins(queryDto: NearbyCausesQueryDto): Promise<NearbyCausePinDto[]> {
+        const origin = { latitude: queryDto.lat, longitude: queryDto.lng };
+        const radiusKm = queryDto.radius_km ?? DEFAULT_NEARBY_RADIUS_KM;
+        const pins = await this.getMapPins();
+
+        return pins
+            .map((pin) => ({
+                ...pin,
+                distance_km: Math.round(distanceInKm(origin, pin) * 100) / 100,
+            }))
+            .filter((pin) => pin.distance_km <= radiusKm)
+            .sort((a, b) => a.distance_km - b.distance_km || a.id - b.id);
+    }
+
+    async getPinsInArea(queryDto: MapAreaQueryDto): Promise<CausePinDto[]> {
+        const { north, south, east, west } = queryDto;
+        if (south > north) {
+            throw new BadRequestException('south must be less than or equal to north');
+        }
+
+        const crossesAntimeridian = west > east;
+        const pins = await this.getMapPins();
+
+        return pins.filter((pin) => {
+            const insideLatitude = pin.latitude >= south && pin.latitude <= north;
+            const insideLongitude = crossesAntimeridian
+                ? pin.longitude >= west || pin.longitude <= east
+                : pin.longitude >= west && pin.longitude <= east;
+            return insideLatitude && insideLongitude;
+        });
     }
 
     async getMapPins(): Promise<CausePinDto[]> {
@@ -216,6 +295,27 @@ export class MatchesService {
             dismissed: true,
             cause_id: dismissMatchDto.cause_id,
         };
+    }
+
+    private async countOccupiedSpots(candidateCauseIds: number[]): Promise<Map<number, number>> {
+        const occupiedMap = new Map<number, number>();
+
+        if (candidateCauseIds.length > 0) {
+            const occupiedCounts = await this.submissionRepository
+                .createQueryBuilder('submission')
+                .select('submission.cause_id', 'cause_id')
+                .addSelect('COUNT(submission.id)', 'count')
+                .where('submission.cause_id IN (:...candidateCauseIds)', { candidateCauseIds })
+                .andWhere('LOWER(submission.status) IN (:...statuses)', { statuses: ['approved', 'accepted'] })
+                .groupBy('submission.cause_id')
+                .getRawMany<{ cause_id: number; count: string | number }>();
+
+            for (const row of occupiedCounts) {
+                occupiedMap.set(Number(row.cause_id), Number(row.count));
+            }
+        }
+
+        return occupiedMap;
     }
 
     private buildCauseCard(cause: Cause, occupied: number): CauseCardDto {
