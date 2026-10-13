@@ -30,6 +30,12 @@ import { AchievementsModule } from './achievements/achievements.module';
                 entities: [__dirname + '/**/*.entity{.ts,.js}'],
                 autoLoadEntities: true,
                 synchronize: true,
+                ssl:
+                    configService.get<string>('POSTGRES_SSL') === 'true' ||
+                    (Boolean(configService.get<string>('POSTGRES_HOST')) &&
+                        configService.get<string>('POSTGRES_HOST') !== 'localhost')
+                        ? { rejectUnauthorized: false }
+                        : false,
             }),
         }),
         AuthModule,
