@@ -19,22 +19,32 @@ export class VolunteerSkillService {
         private readonly skillRepository: Repository<Skill>,
     ) {}
 
-    async create(createVolunteerSkillDto: CreateVolunteerSkillDto): Promise<VolunteerSkill> {
-        const { volunteer_id, skill_id } = createVolunteerSkillDto;
+    async create(createVolunteerSkillDto: CreateVolunteerSkillDto, userId?: number): Promise<VolunteerSkill> {
+        let { volunteer_id } = createVolunteerSkillDto;
+        const { skill_id } = createVolunteerSkillDto;
 
-        // validate volunteer existence
+        if (!volunteer_id && userId) {
+            const vol = await this.volunteerRepository.findOneBy({ user_id: userId });
+            if (!vol) {
+                throw new VolunteerNotFoundException(undefined, `No volunteer profile found for user '${userId}'.`);
+            }
+            volunteer_id = vol.id;
+        }
+
+        if (!volunteer_id) {
+            throw new VolunteerNotFoundException(undefined, 'volunteer_id is required.');
+        }
+
         const volunteer = await this.volunteerRepository.findOneBy({ id: volunteer_id });
         if (!volunteer) {
             throw new VolunteerNotFoundException(volunteer_id);
         }
 
-        // validate skill existence
         const skill = await this.skillRepository.findOneBy({ id: skill_id });
         if (!skill) {
             throw new SkillNotFoundException(skill_id);
         }
 
-        // prevent duplications
         const existing = await this.volunteerSkillRepository.findOneBy({ volunteer_id, skill_id });
         if (existing) {
             throw new ConflictException(
@@ -42,7 +52,7 @@ export class VolunteerSkillService {
             );
         }
 
-        const newVolunteerSkill = this.volunteerSkillRepository.create(createVolunteerSkillDto);
+        const newVolunteerSkill = this.volunteerSkillRepository.create({ volunteer_id, skill_id });
         return await this.volunteerSkillRepository.save(newVolunteerSkill);
     }
 

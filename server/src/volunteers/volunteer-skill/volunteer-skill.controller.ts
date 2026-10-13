@@ -16,8 +16,9 @@ import { CreateVolunteerSkillDto } from './dto/create-volunteer-skill.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
-@Controller('volunteer-skill')
+@Controller(['volunteer-skills', 'volunteer-skill'])
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('volunteer', 'admin')
 export class VolunteerSkillController {
@@ -25,8 +26,11 @@ export class VolunteerSkillController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    async create(@Body() createVolunteerSkillDto: CreateVolunteerSkillDto) {
-        return await this.volunteerSkillService.create(createVolunteerSkillDto);
+    async create(@Body() createVolunteerSkillDto: CreateVolunteerSkillDto, @CurrentUser() user?: any) {
+        const userId = user ? (user.sub ?? user.id) : undefined;
+        return userId !== undefined
+            ? await this.volunteerSkillService.create(createVolunteerSkillDto, userId)
+            : await this.volunteerSkillService.create(createVolunteerSkillDto);
     }
 
     @Get()

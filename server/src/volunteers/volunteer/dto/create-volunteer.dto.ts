@@ -3,8 +3,8 @@ import { IsIn, IsInt, IsNotEmpty, IsOptional, IsPositive, IsString } from 'class
 export class CreateVolunteerDto {
     @IsInt({ message: 'user_id must be an integer' })
     @IsPositive({ message: 'user_id must be a positive integer' })
-    @IsNotEmpty({ message: 'user_id is required' })
-    user_id!: number;
+    @IsOptional()
+    user_id?: number;
 
     @IsString({ message: 'description must be a string' })
     @IsOptional()

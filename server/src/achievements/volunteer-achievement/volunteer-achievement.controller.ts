@@ -16,7 +16,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 
-@Controller('volunteer-achievement')
+@Controller(['volunteer-achievements', 'volunteer-achievement'])
 export class VolunteerAchievementController {
     constructor(private readonly volunteerAchievementService: VolunteerAchievementService) {}
 

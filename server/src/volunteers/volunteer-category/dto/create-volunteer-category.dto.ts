@@ -1,10 +1,10 @@
-import { IsInt, IsNotEmpty, IsPositive } from 'class-validator';
+import { IsInt, IsNotEmpty, IsOptional, IsPositive } from 'class-validator';
 
 export class CreateVolunteerCategoryDto {
     @IsInt({ message: 'volunteer_id must be an integer' })
     @IsPositive({ message: 'volunteer_id must be a positive integer' })
-    @IsNotEmpty({ message: 'volunteer_id is required' })
-    volunteer_id!: number;
+    @IsOptional()
+    volunteer_id?: number;
 
     @IsInt({ message: 'category_id must be an integer' })
     @IsPositive({ message: 'category_id must be a positive integer' })
