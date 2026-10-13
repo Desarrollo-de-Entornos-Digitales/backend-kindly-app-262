@@ -26,8 +26,11 @@ export class VolunteerSkillController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    async create(@CurrentUser() user: any, @Body() createVolunteerSkillDto: CreateVolunteerSkillDto) {
-        return await this.volunteerSkillService.create(createVolunteerSkillDto, user?.sub ?? user?.id);
+    async create(@Body() createVolunteerSkillDto: CreateVolunteerSkillDto, @CurrentUser() user?: any) {
+        const userId = user ? (user.sub ?? user.id) : undefined;
+        return userId !== undefined
+            ? await this.volunteerSkillService.create(createVolunteerSkillDto, userId)
+            : await this.volunteerSkillService.create(createVolunteerSkillDto);
     }
 
     @Get()

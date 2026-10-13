@@ -98,8 +98,6 @@ export class VolunteersService {
                 'volunteerSkills.skill',
                 'volunteerCategories.category',
                 'volunteerAchievements.achievement',
-                'submissions',
-                'attendances',
             ],
         });
 
@@ -118,8 +116,6 @@ export class VolunteersService {
                 'volunteerSkills.skill',
                 'volunteerCategories.category',
                 'volunteerAchievements.achievement',
-                'submissions',
-                'attendances',
             ],
         });
 

@@ -26,8 +26,11 @@ export class VolunteerCategoryController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    async create(@CurrentUser() user: any, @Body() createVolunteerCategoryDto: CreateVolunteerCategoryDto) {
-        return await this.volunteerCategoryService.create(createVolunteerCategoryDto, user?.sub ?? user?.id);
+    async create(@Body() createVolunteerCategoryDto: CreateVolunteerCategoryDto, @CurrentUser() user?: any) {
+        const userId = user ? (user.sub ?? user.id) : undefined;
+        return userId !== undefined
+            ? await this.volunteerCategoryService.create(createVolunteerCategoryDto, userId)
+            : await this.volunteerCategoryService.create(createVolunteerCategoryDto);
     }
 
     @Get()
