@@ -20,21 +20,21 @@ export class Organizer {
     @Column()
     description!: string;
 
-    @Column({ nullable: true })
-    website!: string;
+    @Column({ type: 'varchar', nullable: true })
+    website?: string | null;
 
-    @Column({ name: 'verification_file', nullable: true })
-    verification_file!: string;
+    @Column({ name: 'verification_file', type: 'varchar', nullable: true })
+    verification_file?: string | null;
 
     @Column({ name: 'verification_status', type: 'varchar' })
     verification_status!: string;
 
-    @Column({ name: 'organization_type_id' })
-    organization_type_id!: number;
+    @Column({ name: 'organization_type_id', type: 'int', nullable: true })
+    organization_type_id?: number | null;
 
-    @ManyToOne(() => OrganizationType, (organizationType) => organizationType.organizers)
+    @ManyToOne(() => OrganizationType, (organizationType) => organizationType.organizers, { nullable: true })
     @JoinColumn({ name: 'organization_type_id' })
-    organizationType!: OrganizationType;
+    organizationType?: OrganizationType | null;
 
     @OneToOne(() => User, (user) => user.organizer)
     @JoinColumn({ name: 'user_id' })

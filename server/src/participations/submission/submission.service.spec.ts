@@ -9,6 +9,7 @@ import {
     CauseQuotaFullException,
     DuplicateSubmissionException,
     InvalidSubmissionStatusException,
+    OrganizerNotFoundException,
     SubmissionNotFoundException,
 } from '../../common/exceptions';
 import { Cause } from '../../causes/entities/cause.entity';
@@ -23,9 +24,6 @@ const futureDate = () => new Date(Date.now() + 24 * 60 * 60 * 1000);
 describe('SubmissionService', () => {
     let service: SubmissionService;
     const submissionRepository = {
-        existsBy: jest.fn<() => Promise<boolean>>(),
-        create: jest.fn((data: Partial<Submission>) => data as Submission),
-        save: jest.fn((data: Submission) => Promise.resolve(Object.assign(data, { id: 1 }))),
         find: jest.fn<(options: object) => Promise<Submission[]>>(),
         findOne: jest.fn<() => Promise<Submission | null>>(),
     };
@@ -41,8 +39,10 @@ describe('SubmissionService', () => {
     };
     const manager = {
         findOneBy: jest.fn<() => Promise<Submission | null>>(),
-        findOne: jest.fn<() => Promise<Cause | null>>(),
+        findOne: jest.fn<(entity: unknown, options: object) => Promise<Cause | Volunteer | null>>(),
+        existsBy: jest.fn<(entity: unknown, where: object) => Promise<boolean>>(),
         countBy: jest.fn<() => Promise<number>>(),
+        create: jest.fn((_entity: unknown, data: Partial<Submission>) => data as Submission),
         save: jest.fn((entity: Submission) => Promise.resolve(entity)),
     };
     const dataSource = {
@@ -73,19 +73,32 @@ describe('SubmissionService', () => {
 
     describe('create', () => {
         const userId = 7;
-        const dto = { cause_id: 10, justification: 'Quiero ayudar' };
+        const dto = { cause_id: 10, justification: 'I want to help' };
 
         beforeEach(() => {
             volunteerRepository.findOneBy.mockResolvedValue({ id: 1 } as Volunteer);
             causeRepository.findOneBy.mockResolvedValue(cause());
-            submissionRepository.existsBy.mockResolvedValue(false);
+            manager.existsBy.mockResolvedValue(false);
             manager.countBy.mockResolvedValue(0);
         });
 
         it('creates a pending submission with the justification', async () => {
             const result = await service.create(userId, dto);
             expect(result.status).toBe(SubmissionStatus.PENDING);
-            expect(result.justification).toBe('Quiero ayudar');
+            expect(result.justification).toBe('I want to help');
+        });
+
+        it('locks the volunteer before checking for an active submission', async () => {
+            await service.create(userId, dto);
+
+            expect(dataSource.transaction).toHaveBeenCalled();
+            expect(manager.findOne).toHaveBeenCalledWith(Volunteer, {
+                where: { id: 1 },
+                lock: { mode: 'pessimistic_write' },
+            });
+            expect(manager.findOne.mock.invocationCallOrder[0]).toBeLessThan(
+                manager.existsBy.mock.invocationCallOrder[0],
+            );
         });
 
         it('uses the volunteer profile of the authenticated user', async () => {
@@ -99,6 +112,11 @@ describe('SubmissionService', () => {
             await expect(service.create(userId, dto)).rejects.toThrow(NotFoundException);
         });
 
+        it('fails when the cause does not exist', async () => {
+            causeRepository.findOneBy.mockResolvedValue(null);
+            await expect(service.create(userId, dto)).rejects.toThrow(CauseNotFoundException);
+        });
+
         it('fails when the cause is not available', async () => {
             causeRepository.findOneBy.mockResolvedValue(cause({ is_available: false }));
             await expect(service.create(userId, dto)).rejects.toThrow(CauseNotAvailableException);
@@ -110,8 +128,9 @@ describe('SubmissionService', () => {
         });
 
         it('fails when the volunteer already has an active submission', async () => {
-            submissionRepository.existsBy.mockResolvedValue(true);
+            manager.existsBy.mockResolvedValue(true);
             await expect(service.create(userId, dto)).rejects.toThrow(DuplicateSubmissionException);
+            expect(manager.save).not.toHaveBeenCalled();
         });
 
         it('fails when the cause is already full', async () => {
@@ -232,12 +251,34 @@ describe('SubmissionService', () => {
             manager.findOneBy.mockResolvedValue(null);
             await expect(service.accept(99, 9)).rejects.toThrow(SubmissionNotFoundException);
         });
+
+        it('fails when the cause is not found inside the transaction', async () => {
+            manager.findOneBy.mockResolvedValue({
+                id: 1,
+                cause_id: 10,
+                status: SubmissionStatus.PENDING,
+            } as Submission);
+            manager.findOne.mockResolvedValue(null);
+
+            await expect(service.accept(1, 9)).rejects.toThrow(CauseNotFoundException);
+        });
     });
 
     describe('reject', () => {
         beforeEach(() => {
             causeRepository.findOneBy.mockResolvedValue(cause({ organizer_id: 3 }));
             organizerRepository.findOneBy.mockResolvedValue({ id: 3 } as Organizer);
+        });
+
+        it('fails when organizer profile does not exist for current user', async () => {
+            manager.findOneBy.mockResolvedValue({
+                id: 1,
+                cause_id: 10,
+                status: SubmissionStatus.PENDING,
+            } as Submission);
+            organizerRepository.findOneBy.mockResolvedValue(null);
+
+            await expect(service.reject(1, 9)).rejects.toThrow(OrganizerNotFoundException);
         });
 
         it('fails when the organizer does not own the cause', async () => {
@@ -291,6 +332,13 @@ describe('SubmissionService', () => {
 
             await expect(service.findOne(1, 9, 'organizer')).resolves.toBe(submission);
             expect(causeRepository.existsBy).toHaveBeenCalledWith({ id: 10, organizer_id: 3 });
+        });
+
+        it('fails when organizer profile does not exist when viewing submission', async () => {
+            submissionRepository.findOne.mockResolvedValue(submission);
+            organizerRepository.findOneBy.mockResolvedValue(null);
+
+            await expect(service.findOne(1, 9, 'organizer')).rejects.toThrow(OrganizerNotFoundException);
         });
 
         it('fails when the organizer does not own the cause', async () => {

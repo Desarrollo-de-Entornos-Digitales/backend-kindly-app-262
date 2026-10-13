@@ -4,6 +4,8 @@ import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
+import { SearchCausesDto } from './dto/search-causes.dto';
+import { FilterCausesCategoryDto } from './dto/filter-causes-category.dto';
 import { PositiveIntPipe } from '../common/pipes/positive-int.pipe';
 
 @Controller('causes')
@@ -19,6 +21,16 @@ export class CausesController {
     @Get()
     findAll() {
         return this.causesService.findAll();
+    }
+
+    @Get('search')
+    searchByKeywords(@Query() searchDto: SearchCausesDto) {
+        return this.causesService.searchByKeywords(searchDto);
+    }
+
+    @Get('filter')
+    filterByCategory(@Query() filterDto: FilterCausesCategoryDto) {
+        return this.causesService.filterByCategory(filterDto);
     }
 
     @Get('my-causes')
