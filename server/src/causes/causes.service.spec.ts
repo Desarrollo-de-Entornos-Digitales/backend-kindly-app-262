@@ -2,7 +2,7 @@ import { describe, beforeEach, it, expect, jest } from '@jest/globals';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { CausesService } from './causes.service';
 import { Cause } from './entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
@@ -12,6 +12,8 @@ import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
+import { SearchCausesDto } from './dto/search-causes.dto';
+import { FilterCausesCategoryDto } from './dto/filter-causes-category.dto';
 import { PositiveIntPipe } from '../common/pipes/positive-int.pipe';
 import { ValidationPipe } from '@nestjs/common';
 import {
@@ -26,6 +28,7 @@ describe('CausesService', () => {
     let organizerRepository: jest.Mocked<Partial<Repository<Organizer>>>;
     let categoryRepository: jest.Mocked<Partial<Repository<Category>>>;
     let submissionRepository: jest.Mocked<Partial<Repository<Submission>>>;
+    let mockQueryBuilder: any;
 
     const mockValidDto: CreateCauseDto = {
         organizer_id: 1,
@@ -90,6 +93,16 @@ describe('CausesService', () => {
     };
 
     beforeEach(async () => {
+        mockQueryBuilder = {
+            leftJoinAndSelect: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            skip: jest.fn().mockReturnThis(),
+            take: jest.fn().mockReturnThis(),
+            getManyAndCount: jest.fn().mockResolvedValue([[mockCause], 1]),
+        };
+
         causeRepository = {
             create: jest.fn<any>().mockImplementation((dto: any) => ({
                 id: 10,
@@ -103,6 +116,7 @@ describe('CausesService', () => {
             ),
             findOne: jest.fn<any>(),
             find: jest.fn<any>(),
+            createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
         };
 
         organizerRepository = {
@@ -1183,4 +1197,219 @@ describe('CausesService', () => {
             expect(transformedCompleted).toEqual({ progress: 'completed' });
         });
     });
+
+    describe('CRUD stubs and edge cases', () => {
+        it('82. should return all causes message from findAll stub', () => {
+            expect(service.findAll()).toBe('This action returns all causes');
+        });
+
+        it('83. should return single cause message from findOne stub', () => {
+            expect(service.findOne(5)).toBe('This action returns a #5 cause');
+        });
+
+        it('84. should return remove cause message from remove stub', () => {
+            expect(service.remove(5)).toBe('This action removes a #5 cause');
+        });
+
+        it('85. should update location_longitude when specified in UpdateCauseDto', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({ ...mockCause });
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.update(1, 1, { location_longitude: '-75.5678' });
+            expect(result.location_longitude).toBe('-75.5678');
+        });
+
+        it('86. should calculate zero capacity correctly as full', async () => {
+            const zeroCapacityCause = { ...mockCause, capacity: 0 };
+            (causeRepository.findOne as any).mockResolvedValue(zeroCapacityCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(0);
+
+            const result = await service.getCapacity(1, 1);
+            expect(result.capacity).toBe(0);
+            expect(result.available).toBe(0);
+            expect(result.is_full).toBe(true);
+            expect(result.status_display).toBe('0/0 spots filled');
+        });
+
+        it('87. should calculate null capacity (no limit) correctly', async () => {
+            const noLimitCause = { ...mockCause, capacity: null };
+            (causeRepository.findOne as any).mockResolvedValue(noLimitCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockResolvedValue(7);
+
+            const result = await service.getCapacity(1, 1);
+            expect(result.capacity).toBeNull();
+            expect(result.available).toBeNull();
+            expect(result.is_full).toBe(false);
+            expect(result.status_display).toBe('7 volunteers (no limit)');
+        });
+
+        it('88. should evaluate Raw SQL status callback in getCapacity count query', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+            (submissionRepository.count as any).mockImplementation((opts: any) => {
+                const statusOp = opts?.where?.status;
+                if (statusOp) {
+                    if (typeof statusOp._sql === 'function') statusOp._sql('submission.status');
+                    if (typeof statusOp._value === 'function') statusOp._value('submission.status');
+                    if (typeof statusOp.value === 'function') statusOp.value('submission.status');
+                    if (typeof statusOp.getSql === 'function') statusOp.getSql('submission.status');
+                }
+                return Promise.resolve(5);
+            });
+
+            const result = await service.getCapacity(1, 1);
+            expect(result.occupied).toBe(5);
+        });
+
+        it('89. should update all optional fields when specified in UpdateCauseDto', async () => {
+            (causeRepository.findOne as any).mockResolvedValue({ ...mockCause });
+            (organizerRepository.findOne as any).mockResolvedValue(mockOrganizer);
+
+            const result = await service.update(1, 1, {
+                cover_image_url: 'https://new-cover.jpg',
+                address: 'New Address 123',
+                location_latitude: '6.2500',
+                start_date: '2026-11-05T08:00:00.000Z',
+                end_date: '2026-11-05T18:00:00.000Z',
+            });
+            expect(result.cover_image_url).toBe('https://new-cover.jpg');
+            expect(result.address).toBe('New Address 123');
+            expect(result.location_latitude).toBe('6.2500');
+            expect(result.start_date).toEqual(new Date('2026-11-05T08:00:00.000Z'));
+            expect(result.end_date).toEqual(new Date('2026-11-05T18:00:00.000Z'));
+        });
+    });
+
+    describe('searchByKeywords (US-3.3.1)', () => {
+        const validationPipe = new ValidationPipe({
+            transform: true,
+            whitelist: true,
+            forbidNonWhitelisted: true,
+        });
+
+        it('90. should successfully search causes by keyword in title or description', async () => {
+            (causeRepository.find as jest.Mock).mockResolvedValue([mockCause]);
+
+            const result = await service.searchByKeywords({ keyword: 'Sembratón' });
+
+            expect(causeRepository.find).toHaveBeenCalledWith({
+                where: [
+                    { title: ILike('%Sembratón%'), is_available: true },
+                    { description: ILike('%Sembratón%'), is_available: true },
+                ],
+                relations: ['category', 'organizer'],
+                order: { id: 'ASC' },
+            });
+            expect(result).toEqual([mockCause]);
+        });
+
+        it('91. should return empty array when no causes match keyword', async () => {
+            (causeRepository.find as jest.Mock).mockResolvedValue([]);
+
+            const result = await service.searchByKeywords({ keyword: 'Inexistente' });
+
+            expect(result).toEqual([]);
+        });
+
+        it('92. should validate and trim keyword via ValidationPipe', async () => {
+            const payload = { keyword: '  Árboles  ' };
+            const transformed = await validationPipe.transform(payload, {
+                type: 'query',
+                metatype: SearchCausesDto,
+            });
+
+            expect(transformed.keyword).toBe('Árboles');
+        });
+
+        it('93. should reject keyword with multiple words via ValidationPipe', async () => {
+            const payload = { keyword: 'arboles nativos' };
+            await expect(
+                validationPipe.transform(payload, {
+                    type: 'query',
+                    metatype: SearchCausesDto,
+                }),
+            ).rejects.toThrow();
+        });
+
+        it('94. should reject keyword when empty via ValidationPipe', async () => {
+            const payload = { keyword: '   ' };
+            await expect(
+                validationPipe.transform(payload, {
+                    type: 'query',
+                    metatype: SearchCausesDto,
+                }),
+            ).rejects.toThrow();
+        });
+    });
+
+    describe('filterByCategory (US-3.3.2)', () => {
+        const validationPipe = new ValidationPipe({
+            transform: true,
+            whitelist: true,
+            forbidNonWhitelisted: true,
+        });
+
+        it('95. should filter causes by category_id', async () => {
+            (causeRepository.find as jest.Mock).mockResolvedValue([mockCause]);
+
+            const result = await service.filterByCategory({ category_id: 1 });
+
+            expect(causeRepository.find).toHaveBeenCalledWith({
+                where: { is_available: true, category_id: 1 },
+                relations: ['category', 'organizer'],
+                order: { id: 'ASC' },
+            });
+            expect(result).toEqual([mockCause]);
+        });
+
+        it('96. should filter causes by category_name using ILike', async () => {
+            (causeRepository.find as jest.Mock).mockResolvedValue([mockCause]);
+
+            const result = await service.filterByCategory({ category_name: 'Medio Ambiente' });
+
+            expect(causeRepository.find).toHaveBeenCalledWith({
+                where: {
+                    is_available: true,
+                    category: { name: ILike('%Medio Ambiente%') },
+                },
+                relations: ['category', 'organizer'],
+                order: { id: 'ASC' },
+            });
+            expect(result).toEqual([mockCause]);
+        });
+
+        it('97. should filter by both category_id and category_name when provided', async () => {
+            (causeRepository.find as jest.Mock).mockResolvedValue([mockCause]);
+
+            await service.filterByCategory({ category_id: 1, category_name: 'Medio Ambiente' });
+
+            expect(causeRepository.find).toHaveBeenCalledWith({
+                where: {
+                    is_available: true,
+                    category_id: 1,
+                    category: { name: ILike('%Medio Ambiente%') },
+                },
+                relations: ['category', 'organizer'],
+                order: { id: 'ASC' },
+            });
+        });
+
+        it('98. should throw BadRequestException when neither category_id nor category_name is provided', async () => {
+            await expect(service.filterByCategory({})).rejects.toThrow(BadRequestException);
+        });
+
+        it('99. should validate FilterCausesCategoryDto via ValidationPipe', async () => {
+            const payload = { category_id: '1', category_name: '  Educación  ' };
+            const transformed = await validationPipe.transform(payload, {
+                type: 'query',
+                metatype: FilterCausesCategoryDto,
+            });
+
+            expect(transformed.category_id).toBe(1);
+            expect(transformed.category_name).toBe('Educación');
+        });
+    });
 });
+

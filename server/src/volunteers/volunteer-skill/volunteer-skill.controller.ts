@@ -1,34 +1,54 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+    Controller,
+    Get,
+    Post,
+    Body,
+    Param,
+    Delete,
+    Query,
+    ParseIntPipe,
+    HttpCode,
+    HttpStatus,
+    UseGuards,
+} from '@nestjs/common';
 import { VolunteerSkillService } from './volunteer-skill.service';
 import { CreateVolunteerSkillDto } from './dto/create-volunteer-skill.dto';
-import { UpdateVolunteerSkillDto } from './dto/update-volunteer-skill.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../auth/guards/roles.guard';
+import { Roles } from '../../auth/decorators/roles.decorator';
 
 @Controller('volunteer-skill')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('volunteer', 'admin')
 export class VolunteerSkillController {
     constructor(private readonly volunteerSkillService: VolunteerSkillService) {}
 
     @Post()
-    create(@Body() createVolunteerSkillDto: CreateVolunteerSkillDto) {
-        return this.volunteerSkillService.create(createVolunteerSkillDto);
+    @HttpCode(HttpStatus.CREATED)
+    async create(@Body() createVolunteerSkillDto: CreateVolunteerSkillDto) {
+        return await this.volunteerSkillService.create(createVolunteerSkillDto);
     }
 
     @Get()
-    findAll() {
-        return this.volunteerSkillService.findAll();
+    async findAll(@Query('volunteer_id') volunteerId?: string) {
+        const parsedId = volunteerId ? parseInt(volunteerId, 10) : undefined;
+        return await this.volunteerSkillService.findAll(parsedId);
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.volunteerSkillService.findOne(+id);
+    @Get(':volunteerId/:skillId')
+    async findOne(
+        @Param('volunteerId', ParseIntPipe) volunteerId: number,
+        @Param('skillId', ParseIntPipe) skillId: number,
+    ) {
+        return await this.volunteerSkillService.findOne(volunteerId, skillId);
     }
 
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateVolunteerSkillDto: UpdateVolunteerSkillDto) {
-        return this.volunteerSkillService.update(+id, updateVolunteerSkillDto);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.volunteerSkillService.remove(+id);
+    @Delete(':volunteerId/:skillId')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async remove(
+        @Param('volunteerId', ParseIntPipe) volunteerId: number,
+        @Param('skillId', ParseIntPipe) skillId: number,
+    ) {
+        await this.volunteerSkillService.remove(volunteerId, skillId);
     }
 }

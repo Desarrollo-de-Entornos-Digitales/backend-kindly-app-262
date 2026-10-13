@@ -65,24 +65,31 @@ export class SubmissionService {
             throw new CauseNotAvailableException('the cause has already ended');
         }
 
-        const activeSubmission = await this.submissionRepository.existsBy({
-            volunteer_id,
-            cause_id,
-            status: In([SubmissionStatus.PENDING, SubmissionStatus.ACCEPTED]),
-        });
-        if (activeSubmission) {
-            throw new DuplicateSubmissionException();
-        }
+        return this.dataSource.transaction(async (manager) => {
+            await manager.findOne(Volunteer, {
+                where: { id: volunteer_id },
+                lock: { mode: 'pessimistic_write' },
+            });
 
-        await this.assertCapacityAvailable(this.dataSource.manager, cause);
+            const activeSubmission = await manager.existsBy(Submission, {
+                volunteer_id,
+                cause_id,
+                status: In([SubmissionStatus.PENDING, SubmissionStatus.ACCEPTED]),
+            });
+            if (activeSubmission) {
+                throw new DuplicateSubmissionException();
+            }
 
-        const submission = this.submissionRepository.create({
-            volunteer_id,
-            cause_id,
-            justification,
-            status: SubmissionStatus.PENDING,
+            await this.assertCapacityAvailable(manager, cause);
+
+            const submission = manager.create(Submission, {
+                volunteer_id,
+                cause_id,
+                justification,
+                status: SubmissionStatus.PENDING,
+            });
+            return manager.save(submission);
         });
-        return this.submissionRepository.save(submission);
     }
 
     async findMine(userId: number, filter: FilterSubmissionsDto): Promise<Submission[]> {

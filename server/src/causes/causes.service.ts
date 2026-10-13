@@ -1,14 +1,17 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Raw, Repository } from 'typeorm';
+import { ILike, Raw, Repository } from 'typeorm';
 import { CreateCauseDto } from './dto/create-cause.dto';
 import { UpdateCauseDto } from './dto/update-cause.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { UpdateProgressDto } from './dto/update-progress.dto';
+import { SearchCausesDto } from './dto/search-causes.dto';
+import { FilterCausesCategoryDto } from './dto/filter-causes-category.dto';
 import { Cause } from './entities/cause.entity';
 import { Organizer } from '../organizations/entities/organizer.entity';
 import { Category } from '../volunteers/entities/category.entity';
 import { Submission } from '../participations/entities/submission.entity';
+import { generateCauseQrCode } from '../participations/attendance/qr-code.util';
 import {
     OrganizerNotFoundException,
     OrganizationNotVerifiedException,
@@ -66,7 +69,7 @@ export class CausesService {
             category,
             is_available: false,
             progress: 'open',
-            qr_code: `QR-CAUSE-${Date.now()}`,
+            qr_code: generateCauseQrCode(),
         });
 
         return await this.causeRepository.save(cause);
@@ -115,6 +118,41 @@ export class CausesService {
 
         return await this.causeRepository.find({
             where: { organizer_id: organizerId },
+        });
+    }
+
+    async searchByKeywords(query: SearchCausesDto): Promise<Cause[]> {
+        const searchTerm = `%${query.keyword}%`;
+
+        return await this.causeRepository.find({
+            where: [
+                { title: ILike(searchTerm), is_available: true },
+                { description: ILike(searchTerm), is_available: true },
+            ],
+            relations: ['category', 'organizer'],
+            order: { id: 'ASC' },
+        });
+    }
+
+    async filterByCategory(query: FilterCausesCategoryDto): Promise<Cause[]> {
+        if (!query.category_id && !query.category_name) {
+            throw new BadRequestException('Must provide either category_id or category_name to filter.');
+        }
+
+        const where: any = { is_available: true };
+
+        if (query.category_id) {
+            where.category_id = query.category_id;
+        }
+
+        if (query.category_name) {
+            where.category = { name: ILike(`%${query.category_name}%`) };
+        }
+
+        return await this.causeRepository.find({
+            where,
+            relations: ['category', 'organizer'],
+            order: { id: 'ASC' },
         });
     }
 
