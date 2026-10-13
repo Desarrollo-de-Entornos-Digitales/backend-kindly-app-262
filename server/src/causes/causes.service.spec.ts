@@ -1199,12 +1199,35 @@ describe('CausesService', () => {
     });
 
     describe('CRUD stubs and edge cases', () => {
-        it('82. should return all causes message from findAll stub', () => {
-            expect(service.findAll()).toBe('This action returns all causes');
+        it('82. should return all causes with category and organizer relations ordered by id', async () => {
+            (causeRepository.find as any).mockResolvedValue([mockCause]);
+
+            const result = await service.findAll();
+
+            expect(causeRepository.find).toHaveBeenCalledWith({
+                relations: ['category', 'organizer'],
+                order: { id: 'ASC' },
+            });
+            expect(result).toEqual([mockCause]);
         });
 
-        it('83. should return single cause message from findOne stub', () => {
-            expect(service.findOne(5)).toBe('This action returns a #5 cause');
+        it('83. should return single cause with category and organizer relations when found', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+
+            const result = await service.findOne(1);
+
+            expect(causeRepository.findOne).toHaveBeenCalledWith({
+                where: { id: 1 },
+                relations: ['category', 'organizer'],
+            });
+            expect(result).toEqual(mockCause);
+        });
+
+        it('83b. should throw NotFoundException when cause is not found in findOne', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
+            await expect(service.findOne(999)).rejects.toThrow('Cause with ID 999 not found');
         });
 
         it('84. should return remove cause message from remove stub', () => {

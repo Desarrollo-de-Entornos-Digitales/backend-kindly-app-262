@@ -156,12 +156,24 @@ export class CausesService {
         });
     }
 
-    findAll() {
-        return `This action returns all causes`;
+    async findAll(): Promise<Cause[]> {
+        return this.causeRepository.find({
+            relations: ['category', 'organizer'],
+            order: { id: 'ASC' },
+        });
     }
 
-    findOne(id: number) {
-        return `This action returns a #${id} cause`;
+    async findOne(id: number): Promise<Cause> {
+        const cause = await this.causeRepository.findOne({
+            where: { id },
+            relations: ['category', 'organizer'],
+        });
+
+        if (!cause) {
+            throw new NotFoundException(`Cause with ID ${id} not found`);
+        }
+
+        return cause;
     }
 
     async update(causeId: number, organizerId: number, updateCauseDto: UpdateCauseDto): Promise<Cause> {
