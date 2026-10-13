@@ -38,7 +38,7 @@ if (!process.env.VERCEL) {
                 },
             }),
         );
-        await app.listen(process.env.PORT ?? 3001);
+        await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
     }
     bootstrap().catch((error) => {
         console.error('Error al iniciar la aplicación:', error);
