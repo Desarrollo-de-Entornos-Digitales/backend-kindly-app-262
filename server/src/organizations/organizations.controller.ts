@@ -1,6 +1,7 @@
 import {
     Body,
     Controller,
+    Delete,
     Get,
     HttpCode,
     HttpStatus,
@@ -99,5 +100,13 @@ export class OrganizationsController {
     @Get(':id')
     async findOne(@Param('id', ParseIntPipe) id: number) {
         return await this.organizationsService.findOne(id);
+    }
+
+    @Delete(':id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles('admin')
+    @HttpCode(HttpStatus.NO_CONTENT)
+    async remove(@Param('id', ParseIntPipe) id: number) {
+        await this.organizationsService.remove(id);
     }
 }

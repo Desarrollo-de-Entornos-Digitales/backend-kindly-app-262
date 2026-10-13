@@ -174,6 +174,11 @@ export class OrganizationsService {
         return this.sanitize(organizer);
     }
 
+    async remove(id: number): Promise<void> {
+        await this.findOne(id);
+        await this.organizerRepository.delete(id);
+    }
+
     private sanitize(organizer: Organizer): Organizer {
         if (organizer.user) {
             delete (organizer.user as Partial<User>).password;
