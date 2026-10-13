@@ -4,6 +4,10 @@ export * from './http/role-not-found.exception';
 export * from './http/user-already-exists.exception';
 export * from './http/invalid-credentials.exception';
 export * from './http/user-inactive.exception';
+export * from './http/volunteer-not-found.exception';
+export * from './http/skill-not-found.exception';
+export * from './http/category-not-found.exception';
+export * from './http/achievement-not-found.exception';
 
 // Tokens / JWT
 export * from './http/token-expired.exception';
@@ -22,3 +26,5 @@ export * from './http/submission-not-found.exception';
 export * from './http/duplicate-submission.exception';
 export * from './http/volunteer-not-accepted.exception';
 export * from './http/duplicate-attendance.exception';
+export * from './http/invalid-submission-status.exception';
+export * from './http/invalid-qr-code.exception';

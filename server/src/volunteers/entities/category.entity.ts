@@ -10,6 +10,9 @@ export class Category {
     @Column()
     name!: string;
 
+    @Column({ name: 'description', type: 'varchar', nullable: true, default: null })
+    description?: string | null;
+
     @OneToMany(() => Cause, (cause) => cause.category)
     causes!: Cause[];
 

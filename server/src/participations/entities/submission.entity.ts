@@ -1,6 +1,7 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { Cause } from '../../causes/entities/cause.entity';
 import { Volunteer } from '../../volunteers/entities/volunteer.entity';
+import { SubmissionStatus } from '../submission/submission-status.enum';
 
 @Entity('submission')
 export class Submission {
@@ -13,8 +14,8 @@ export class Submission {
     @Column({ name: 'cause_id' })
     cause_id!: number;
 
-    @Column()
-    status!: string;
+    @Column({ type: 'varchar' })
+    status!: SubmissionStatus;
 
     @Column({
         name: 'created_at',

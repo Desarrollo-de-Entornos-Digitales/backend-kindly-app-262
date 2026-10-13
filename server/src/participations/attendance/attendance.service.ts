@@ -1,26 +1,97 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, QueryFailedError, Repository } from 'typeorm';
+import {
+    CauseNotAvailableException,
+    CauseNotFoundException,
+    DuplicateAttendanceException,
+    InvalidQrCodeException,
+    OrganizerNotFoundException,
+    VolunteerNotAcceptedException,
+} from '../../common/exceptions';
+import { Cause } from '../../causes/entities/cause.entity';
+import { Organizer } from '../../organizations/entities/organizer.entity';
+import { Volunteer } from '../../volunteers/entities/volunteer.entity';
+import { Attendance } from '../entities/attendance.entity';
+import { Submission } from '../entities/submission.entity';
+import { SubmissionStatus } from '../submission/submission-status.enum';
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
-import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 
 @Injectable()
 export class AttendanceService {
-    create(_createAttendanceDto: CreateAttendanceDto) {
-        return 'This action adds a new attendance';
+    constructor(
+        @InjectRepository(Cause)
+        private readonly causeRepository: Repository<Cause>,
+        @InjectRepository(Organizer)
+        private readonly organizerRepository: Repository<Organizer>,
+        @InjectRepository(Volunteer)
+        private readonly volunteerRepository: Repository<Volunteer>,
+        @InjectRepository(Submission)
+        private readonly submissionRepository: Repository<Submission>,
+        @InjectRepository(Attendance)
+        private readonly attendanceRepository: Repository<Attendance>,
+        private readonly dataSource: DataSource,
+    ) {}
+
+    async getCauseQrCode(causeId: number, userId: number): Promise<{ cause_id: number; qr_code: string }> {
+        const cause = await this.causeRepository.findOneBy({ id: causeId });
+        if (!cause) {
+            throw new CauseNotFoundException(causeId);
+        }
+        const organizer = await this.organizerRepository.findOneBy({ user_id: userId });
+        if (!organizer) {
+            throw new OrganizerNotFoundException();
+        }
+        if (cause.organizer_id !== organizer.id) {
+            throw new ForbiddenException(`Cause with ID '${causeId}' does not belong to the current organizer.`);
+        }
+        return { cause_id: cause.id, qr_code: cause.qr_code };
     }
 
-    findAll() {
-        return `This action returns all attendance`;
-    }
+    async checkIn(userId: number, createAttendanceDto: CreateAttendanceDto): Promise<Attendance> {
+        const volunteer = await this.volunteerRepository.findOneBy({ user_id: userId });
+        if (!volunteer) {
+            throw new NotFoundException(`Volunteer profile for user '${userId}' not found.`);
+        }
+        const cause = await this.causeRepository.findOneBy({ qr_code: createAttendanceDto.qr_code });
+        if (!cause) {
+            throw new InvalidQrCodeException();
+        }
 
-    findOne(id: number) {
-        return `This action returns a #${id} attendance`;
-    }
+        const now = new Date();
+        if (now < cause.start_date || now > cause.end_date) {
+            throw new CauseNotAvailableException('the cause is not in progress');
+        }
 
-    update(id: number, _updateAttendanceDto: UpdateAttendanceDto) {
-        return `This action updates a #${id} attendance`;
-    }
+        const isAccepted = await this.submissionRepository.existsBy({
+            volunteer_id: volunteer.id,
+            cause_id: cause.id,
+            status: SubmissionStatus.ACCEPTED,
+        });
+        if (!isAccepted) {
+            throw new VolunteerNotAcceptedException();
+        }
 
-    remove(id: number) {
-        return `This action removes a #${id} attendance`;
+        const alreadyCheckedIn = await this.attendanceRepository.existsBy({
+            cause_id: cause.id,
+            volunteer_id: volunteer.id,
+        });
+        if (alreadyCheckedIn) {
+            throw new DuplicateAttendanceException();
+        }
+
+        const attendance = this.attendanceRepository.create({ cause_id: cause.id, volunteer_id: volunteer.id });
+        try {
+            return await this.dataSource.transaction(async (manager) => {
+                const saved = await manager.save(attendance);
+                await manager.increment(Volunteer, { id: volunteer.id }, 'completed_causes', 1);
+                return saved;
+            });
+        } catch (error) {
+            if (error instanceof QueryFailedError && (error.driverError as { code?: string }).code === '23505') {
+                throw new DuplicateAttendanceException();
+            }
+            throw error;
+        }
     }
 }

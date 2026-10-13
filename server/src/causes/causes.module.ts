@@ -1,12 +1,18 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { CausesService } from './causes.service';
 import { CausesController } from './causes.controller';
 import { CauseModule } from './cause/cause.module';
 import { SupplyModule } from './supply/supply.module';
+import { Cause } from './entities/cause.entity';
+import { Organizer } from '../organizations/entities/organizer.entity';
+import { Category } from '../volunteers/entities/category.entity';
+import { Submission } from '../participations/entities/submission.entity';
 
 @Module({
+    imports: [TypeOrmModule.forFeature([Cause, Organizer, Category, Submission]), CauseModule, SupplyModule],
     controllers: [CausesController],
     providers: [CausesService],
-    imports: [CauseModule, SupplyModule],
+    exports: [CausesService],
 })
 export class CausesModule {}

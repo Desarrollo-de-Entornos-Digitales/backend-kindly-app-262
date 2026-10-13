@@ -1,34 +1,33 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ImageService } from './image.service';
 import { CreateImageDto } from './dto/create-image.dto';
-import { UpdateImageDto } from './dto/update-image.dto';
+import { PositiveIntPipe } from '../../common/pipes/positive-int.pipe';
 
-@Controller('image')
+@Controller('causes/:causeId/images')
 export class ImageController {
     constructor(private readonly imageService: ImageService) {}
 
     @Post()
-    create(@Body() createImageDto: CreateImageDto) {
-        return this.imageService.create(createImageDto);
+    @HttpCode(HttpStatus.CREATED)
+    create(
+        @Param('causeId', PositiveIntPipe) causeId: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
+        @Body() createImageDto: CreateImageDto,
+    ) {
+        return this.imageService.create(causeId, organizerId, createImageDto);
     }
 
     @Get()
-    findAll() {
-        return this.imageService.findAll();
+    findAll(@Param('causeId', PositiveIntPipe) causeId: number) {
+        return this.imageService.findAllByCause(causeId);
     }
 
-    @Get(':id')
-    findOne(@Param('id') id: string) {
-        return this.imageService.findOne(+id);
-    }
-
-    @Patch(':id')
-    update(@Param('id') id: string, @Body() updateImageDto: UpdateImageDto) {
-        return this.imageService.update(+id, updateImageDto);
-    }
-
-    @Delete(':id')
-    remove(@Param('id') id: string) {
-        return this.imageService.remove(+id);
+    @Delete(':imageId')
+    remove(
+        @Param('causeId', PositiveIntPipe) causeId: number,
+        @Param('imageId', PositiveIntPipe) imageId: number,
+        @Query('organizer_id', PositiveIntPipe) organizerId: number,
+    ) {
+        return this.imageService.remove(causeId, imageId, organizerId);
     }
 }
