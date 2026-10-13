@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { VolunteersModule } from './volunteers/volunteers.module';
@@ -13,21 +14,29 @@ import { AchievementsModule } from './achievements/achievements.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forRoot({
-            type: 'postgres',
-            host: process.env.POSTGRES_HOST || 'localhost',
-            port: Number(process.env.POSTGRES_PORT || 5433),
-            username: process.env.POSTGRES_USER || 'postgres',
-            password: process.env.POSTGRES_PASSWORD || 'postgres',
-            database: process.env.POSTGRES_DB || 'kindly_db',
-            autoLoadEntities: true,
-            synchronize: true,
-            ssl:
-                process.env.POSTGRES_SSL === 'true' ||
-                (Boolean(process.env.POSTGRES_HOST) &&
-                    process.env.POSTGRES_HOST !== 'localhost')
-                    ? { rejectUnauthorized: false }
-                    : false,
+        ConfigModule.forRoot({
+            isGlobal: true,
+        }),
+        TypeOrmModule.forRootAsync({
+            imports: [ConfigModule],
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService) => ({
+                type: 'postgres',
+                host: configService.get<string>('POSTGRES_HOST') || 'localhost',
+                port: Number(configService.get<string | number>('POSTGRES_PORT') || 5433),
+                username: configService.get<string>('POSTGRES_USER') || 'postgres',
+                password: configService.get<string>('POSTGRES_PASSWORD') || 'postgres',
+                database: configService.get<string>('POSTGRES_DB') || 'kindly_db',
+                entities: [__dirname + '/**/*.entity{.ts,.js}'],
+                autoLoadEntities: true,
+                synchronize: true,
+                ssl:
+                    configService.get<string>('POSTGRES_SSL') === 'true' ||
+                    (Boolean(configService.get<string>('POSTGRES_HOST')) &&
+                        configService.get<string>('POSTGRES_HOST') !== 'localhost')
+                        ? { rejectUnauthorized: false }
+                        : false,
+            }),
         }),
         AuthModule,
         UsersModule,
