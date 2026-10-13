@@ -4,12 +4,6 @@ jest.mock('@nestjs/jwt', () => ({
     },
 }));
 
-jest.mock('@nestjs/config', () => ({
-    ConfigService: class {
-        get = jest.fn();
-    },
-}));
-
 jest.mock('@nestjs/passport', () => ({
     AuthGuard: () => class {},
     PassportStrategy: () => class {},

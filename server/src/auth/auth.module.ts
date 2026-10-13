@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
@@ -17,19 +16,15 @@ import { RoleModule } from '../users/role/role.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([User, Role]), // Access to our database
+        TypeOrmModule.forFeature([User, Role]),
         UserModule,
         RoleModule,
-        PassportModule.register({ defaultStrategy: 'jwt' }), // jwt method
-        JwtModule.registerAsync({
-            imports: [ConfigModule],
-            inject: [ConfigService],
-            useFactory: (configService: ConfigService) => ({
-                secret: configService.get<string>('JWT_SECRET') || 'kindly_secret_key_2026',
-                signOptions: {
-                    expiresIn: (configService.get<string | number>('JWT_EXPIRES_IN') ?? '1h') as any,
-                },
-            }),
+        PassportModule.register({ defaultStrategy: 'jwt' }),
+        JwtModule.register({
+            secret: process.env.JWT_SECRET || 'kindly_secret_key_2026',
+            signOptions: {
+                expiresIn: (process.env.JWT_EXPIRES_IN ?? '1h') as any,
+            },
         }),
     ],
     controllers: [AuthController],
