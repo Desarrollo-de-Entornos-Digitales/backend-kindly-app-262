@@ -26,10 +26,6 @@ async function bootstrapServerless() {
 
 if (!process.env.VERCEL) {
     async function bootstrap() {
-        try {
-            const dotenv = await import('dotenv');
-            dotenv.config();
-        } catch {}
         const app = await NestFactory.create(AppModule);
         app.enableCors();
         app.useGlobalPipes(
