@@ -16,6 +16,7 @@ import { CreateVolunteerCategoryDto } from './dto/create-volunteer-category.dto'
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
+import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 
 @Controller(['volunteer-categories', 'volunteer-category'])
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -25,8 +26,8 @@ export class VolunteerCategoryController {
 
     @Post()
     @HttpCode(HttpStatus.CREATED)
-    async create(@Body() createVolunteerCategoryDto: CreateVolunteerCategoryDto) {
-        return await this.volunteerCategoryService.create(createVolunteerCategoryDto);
+    async create(@CurrentUser() user: any, @Body() createVolunteerCategoryDto: CreateVolunteerCategoryDto) {
+        return await this.volunteerCategoryService.create(createVolunteerCategoryDto, user?.sub ?? user?.id);
     }
 
     @Get()

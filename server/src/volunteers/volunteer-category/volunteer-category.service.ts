@@ -19,8 +19,21 @@ export class VolunteerCategoryService {
         private readonly categoryRepository: Repository<Category>,
     ) {}
 
-    async create(createVolunteerCategoryDto: CreateVolunteerCategoryDto): Promise<VolunteerCategory> {
-        const { volunteer_id, category_id } = createVolunteerCategoryDto;
+    async create(createVolunteerCategoryDto: CreateVolunteerCategoryDto, userId?: number): Promise<VolunteerCategory> {
+        let { volunteer_id } = createVolunteerCategoryDto;
+        const { category_id } = createVolunteerCategoryDto;
+
+        if (!volunteer_id && userId) {
+            const vol = await this.volunteerRepository.findOneBy({ user_id: userId });
+            if (!vol) {
+                throw new VolunteerNotFoundException(undefined, `No volunteer profile found for user '${userId}'.`);
+            }
+            volunteer_id = vol.id;
+        }
+
+        if (!volunteer_id) {
+            throw new VolunteerNotFoundException(undefined, 'volunteer_id is required.');
+        }
 
         const volunteer = await this.volunteerRepository.findOneBy({ id: volunteer_id });
         if (!volunteer) {
@@ -39,7 +52,7 @@ export class VolunteerCategoryService {
             );
         }
 
-        const newVolunteerCategory = this.volunteerCategoryRepository.create(createVolunteerCategoryDto);
+        const newVolunteerCategory = this.volunteerCategoryRepository.create({ volunteer_id, category_id });
         return await this.volunteerCategoryRepository.save(newVolunteerCategory);
     }
 

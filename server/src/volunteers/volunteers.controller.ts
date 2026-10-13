@@ -46,9 +46,7 @@ export class VolunteersController {
     @Roles('volunteer')
     @HttpCode(HttpStatus.CREATED)
     async create(@CurrentUser() user: any, @Body() createVolunteerDto: CreateVolunteerDto) {
-        if (!createVolunteerDto.user_id && (user?.id || user?.sub)) {
-            createVolunteerDto.user_id = user?.id ?? user?.sub;
-        }
+        createVolunteerDto.user_id = user?.sub ?? user?.id ?? createVolunteerDto.user_id;
         return await this.volunteersService.create(createVolunteerDto);
     }
 
