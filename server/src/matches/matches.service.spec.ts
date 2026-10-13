@@ -880,7 +880,16 @@ describe('MatchesService', () => {
 
     describe('US-3.2.2: Open cause preview from map', () => {
         it('37. should return full cause preview card with all details and capacity calculations', async () => {
-            (submissionRepository.count as any).mockResolvedValue(5);
+            (submissionRepository.count as any).mockImplementation((opts: any) => {
+                const statusOp = opts?.where?.status;
+                if (statusOp) {
+                    if (typeof statusOp._sql === 'function') statusOp._sql('s.status');
+                    if (typeof statusOp._value === 'function') statusOp._value('s.status');
+                    if (typeof statusOp.value === 'function') statusOp.value('s.status');
+                    if (typeof statusOp.getSql === 'function') statusOp.getSql('s.status');
+                }
+                return Promise.resolve(5);
+            });
 
             const card = await service.getCausePreview(101);
 

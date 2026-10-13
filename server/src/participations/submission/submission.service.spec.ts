@@ -9,6 +9,7 @@ import {
     CauseQuotaFullException,
     DuplicateSubmissionException,
     InvalidSubmissionStatusException,
+    OrganizerNotFoundException,
     SubmissionNotFoundException,
 } from '../../common/exceptions';
 import { Cause } from '../../causes/entities/cause.entity';
@@ -109,6 +110,11 @@ describe('SubmissionService', () => {
         it('fails when the user has no volunteer profile', async () => {
             volunteerRepository.findOneBy.mockResolvedValue(null);
             await expect(service.create(userId, dto)).rejects.toThrow(NotFoundException);
+        });
+
+        it('fails when the cause does not exist', async () => {
+            causeRepository.findOneBy.mockResolvedValue(null);
+            await expect(service.create(userId, dto)).rejects.toThrow(CauseNotFoundException);
         });
 
         it('fails when the cause is not available', async () => {
@@ -245,12 +251,34 @@ describe('SubmissionService', () => {
             manager.findOneBy.mockResolvedValue(null);
             await expect(service.accept(99, 9)).rejects.toThrow(SubmissionNotFoundException);
         });
+
+        it('fails when the cause is not found inside the transaction', async () => {
+            manager.findOneBy.mockResolvedValue({
+                id: 1,
+                cause_id: 10,
+                status: SubmissionStatus.PENDING,
+            } as Submission);
+            manager.findOne.mockResolvedValue(null);
+
+            await expect(service.accept(1, 9)).rejects.toThrow(CauseNotFoundException);
+        });
     });
 
     describe('reject', () => {
         beforeEach(() => {
             causeRepository.findOneBy.mockResolvedValue(cause({ organizer_id: 3 }));
             organizerRepository.findOneBy.mockResolvedValue({ id: 3 } as Organizer);
+        });
+
+        it('fails when organizer profile does not exist for current user', async () => {
+            manager.findOneBy.mockResolvedValue({
+                id: 1,
+                cause_id: 10,
+                status: SubmissionStatus.PENDING,
+            } as Submission);
+            organizerRepository.findOneBy.mockResolvedValue(null);
+
+            await expect(service.reject(1, 9)).rejects.toThrow(OrganizerNotFoundException);
         });
 
         it('fails when the organizer does not own the cause', async () => {
@@ -304,6 +332,13 @@ describe('SubmissionService', () => {
 
             await expect(service.findOne(1, 9, 'organizer')).resolves.toBe(submission);
             expect(causeRepository.existsBy).toHaveBeenCalledWith({ id: 10, organizer_id: 3 });
+        });
+
+        it('fails when organizer profile does not exist when viewing submission', async () => {
+            submissionRepository.findOne.mockResolvedValue(submission);
+            organizerRepository.findOneBy.mockResolvedValue(null);
+
+            await expect(service.findOne(1, 9, 'organizer')).rejects.toThrow(OrganizerNotFoundException);
         });
 
         it('fails when the organizer does not own the cause', async () => {

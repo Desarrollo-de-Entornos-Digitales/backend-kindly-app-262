@@ -16,10 +16,11 @@ export class OrganizerService {
     ) {}
 
     async create(dto: CreateOrganizerDto, userId?: number): Promise<Organizer> {
-        if (userId) {
-            const existing = await this.organizerRepository.findOneBy({ user_id: userId });
+        const targetUserId = dto.user_id ?? userId;
+        if (targetUserId) {
+            const existing = await this.organizerRepository.findOneBy({ user_id: targetUserId });
             if (existing) {
-                throw new ConflictException(`Organizer profile already exists for user_id '${userId}'`);
+                throw new ConflictException(`Organizer profile already exists for user_id '${targetUserId}'`);
             }
         }
 
@@ -27,7 +28,7 @@ export class OrganizerService {
 
         const organizer = this.organizerRepository.create({
             ...dto,
-            user_id: userId,
+            user_id: targetUserId,
             verification_status: isOrg ? 'pending' : 'verified',
             verification_file: isOrg ? dto.verification_file : null,
             website: isOrg ? dto.website : null,

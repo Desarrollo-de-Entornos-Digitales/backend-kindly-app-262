@@ -619,5 +619,74 @@ describe('AnnouncementsService', () => {
                 }),
             ).rejects.toThrow(BadRequestException);
         });
+
+        it('31. should re-throw unexpected database error when liking announcement', async () => {
+            (announcementReactionRepository.save as any).mockRejectedValue(new Error('Fatal DB Connection Error'));
+
+            await expect(service.like(101, mockVolunteerUser)).rejects.toThrow('Fatal DB Connection Error');
+            expect(announcementRepository.save).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('findOne and admin cause creation check', () => {
+        it('32. should throw CauseNotFoundException when admin creates announcement for nonexistent cause', async () => {
+            (causeRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(
+                service.create(999, mockAdminUser, { title: 'Admin Title', text: 'Admin Text' }),
+            ).rejects.toThrow(CauseNotFoundException);
+        });
+
+        it('33. should return announcement with cause and images relations when found by id', async () => {
+            (announcementRepository.findOne as any).mockResolvedValue(mockAnnouncement);
+
+            const result = await service.findOne(101);
+
+            expect(announcementRepository.findOne).toHaveBeenCalledWith({
+                where: { id: 101 },
+                relations: ['cause', 'images'],
+            });
+            expect(result).toBe(mockAnnouncement);
+        });
+
+        it('34. should throw NotFoundException when announcement is not found by id', async () => {
+            (announcementRepository.findOne as any).mockResolvedValue(null);
+
+            await expect(service.findOne(999)).rejects.toThrow(NotFoundException);
+            await expect(service.findOne(999)).rejects.toThrow("Announcement with ID '999' not found.");
+        });
+
+        it('35. should resolve user role correctly when role is provided as an object in create', async () => {
+            const adminWithObjectRole = { id: 1, role: { name: 'admin' } };
+            (causeRepository.findOne as any).mockResolvedValue(mockCause);
+            (announcementRepository.create as any).mockReturnValue(mockAnnouncement);
+            (announcementRepository.save as any).mockResolvedValue(mockAnnouncement);
+
+            const result = await service.create(1, adminWithObjectRole, {
+                title: 'Announcement Title',
+                text: 'Announcement Text',
+            });
+            expect(result).toBe(mockAnnouncement);
+        });
+
+        it('36. should resolve user role correctly when role is provided as an object in addImage', async () => {
+            const adminWithObjectRole = { id: 1, role: { name: 'admin' } };
+            (announcementRepository.findOne as any).mockResolvedValue(mockAnnouncement);
+            (imageRepository.create as any).mockReturnValue({
+                id: 10,
+                image_url: 'https://new-image.jpg',
+                announcement_id: 101,
+            });
+            (imageRepository.save as any).mockResolvedValue({
+                id: 10,
+                image_url: 'https://new-image.jpg',
+                announcement_id: 101,
+            });
+
+            const result = await service.addImage(101, adminWithObjectRole, {
+                image_url: 'https://new-image.jpg',
+            });
+            expect(result.image_url).toBe('https://new-image.jpg');
+        });
     });
 });

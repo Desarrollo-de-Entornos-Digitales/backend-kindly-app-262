@@ -1,7 +1,13 @@
-import { IsBoolean, IsInt, IsNotEmpty, IsPositive, IsString, IsUrl, ValidateIf } from 'class-validator';
+import { IsBoolean, IsInt, IsNotEmpty, IsOptional, IsPositive, IsString, IsUrl, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateOrganizerDto {
+    @IsInt({ message: 'user_id must be an integer' })
+    @IsPositive({ message: 'user_id must be a positive number' })
+    @IsOptional()
+    @Type(() => Number)
+    user_id?: number;
+
     @IsString({ message: 'name must be a string' })
     @IsNotEmpty({ message: 'name should not be empty' })
     name!: string;

@@ -20,16 +20,16 @@ export class Organizer {
     @Column()
     description!: string;
 
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
     website?: string | null;
 
-    @Column({ name: 'verification_file', nullable: true })
+    @Column({ name: 'verification_file', type: 'varchar', nullable: true })
     verification_file?: string | null;
 
     @Column({ name: 'verification_status', type: 'varchar' })
     verification_status!: string;
 
-    @Column({ name: 'organization_type_id', nullable: true })
+    @Column({ name: 'organization_type_id', type: 'int', nullable: true })
     organization_type_id?: number | null;
 
     @ManyToOne(() => OrganizationType, (organizationType) => organizationType.organizers, { nullable: true })
